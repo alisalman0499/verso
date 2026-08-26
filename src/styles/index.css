@@ -1,0 +1,21 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens, pulled from the palette already defined in
+ * verso-task-manager.html. Tailwind v4 reads color tokens from this
+ * @theme block and turns each one into utilities automatically, e.g.
+ * --color-ink below becomes bg-ink, text-ink, border-ink, etc.
+ */
+@theme {
+  --color-ink: #09090b;
+  --color-ink-2: #0d0d10;
+  --color-ink-3: #141418;
+  --color-ink-4: #1b1b20;
+
+  --color-bone: #edebe6;
+  --color-pure: #ffffff;
+  --color-mute: #76757c;
+  --color-mute-2: #4a494f;
+
+  --color-hairline: rgba(255, 255, 255, 0.075);
+}

@@ -1,0 +1,9 @@
+dist
+node_modules
+package-lock.json
+
+# Legacy mockup, not yet ported — leave its formatting alone.
+verso-task-manager.html
+
+# Hand-maintained project doc — not Prettier's to reformat.
+CLAUDE.md
