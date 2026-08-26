@@ -13,7 +13,7 @@ export function useTasks() {
     saveTasks(tasks)
   }, [tasks])
 
-  function addTask(title: string) {
+  function addTask(title: string, scheduledAt: string) {
     const now = new Date().toISOString()
     const task: Task = {
       id: crypto.randomUUID(),
@@ -21,7 +21,7 @@ export function useTasks() {
       title,
       notes: '',
       projectId: null,
-      scheduledAt: null,
+      scheduledAt,
       estimateMinutes: null,
       done: false,
       createdAt: now,

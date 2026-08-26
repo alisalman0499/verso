@@ -40,8 +40,8 @@ export default function TasksPage() {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  function handleAddTask(title: string) {
-    addTask(title)
+  function handleAddTask(title: string, scheduledAt: string) {
+    addTask(title, scheduledAt)
     setComposerOpen(false)
   }
 

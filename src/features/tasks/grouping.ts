@@ -3,27 +3,31 @@ import type { Task } from '../../types/task'
 
 // Task-specific logic, so it lives in the feature rather than lib/.
 
-export type ListKey = 'today' | 'upcoming' | 'anytime' | 'done'
+// 'all' isn't something classify() ever returns — it's not a bucket a task
+// belongs to, it's a view that shows every task regardless of bucket.
+export type ListKey = 'today' | 'upcoming' | 'done' | 'all'
 
 export const LISTS: { key: ListKey; label: string }[] = [
   { key: 'today', label: 'Today' },
   { key: 'upcoming', label: 'Upcoming' },
-  { key: 'anytime', label: 'Anytime' },
   { key: 'done', label: 'Completed' },
+  { key: 'all', label: 'All tasks' },
 ]
 
-export function classify(task: Task, now: Date): ListKey {
+export function classify(task: Task, now: Date): Exclude<ListKey, 'all'> {
   if (task.done) return 'done'
-  if (task.scheduledAt === null) return 'anytime'
 
-  // Anything scheduled for today or earlier surfaces in Today, so an
-  // overdue task never silently disappears into some other bucket.
+  // No date, or scheduled for today or earlier, both surface in Today —
+  // every task gets a date by default now, so this is mainly the "date
+  // was cleared" edge case, and an overdue task never silently vanishes.
+  if (task.scheduledAt === null) return 'today'
   const endOfToday = new Date(now)
   endOfToday.setHours(23, 59, 59, 999)
   return new Date(task.scheduledAt) <= endOfToday ? 'today' : 'upcoming'
 }
 
 export function tasksForList(tasks: Task[], key: ListKey, now: Date): Task[] {
+  if (key === 'all') return sortByScheduledAt(tasks)
   return sortByScheduledAt(tasks.filter((task) => classify(task, now) === key))
 }
 

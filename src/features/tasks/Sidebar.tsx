@@ -1,5 +1,5 @@
 import type { Task } from '../../types/task'
-import { LISTS, type ListKey, classify } from './grouping'
+import { LISTS, tasksForList, type ListKey } from './grouping'
 
 type SidebarProps = {
   tasks: Task[]
@@ -25,9 +25,7 @@ export default function Sidebar({
           Lists
         </div>
         {LISTS.map((list) => {
-          const count = tasks.filter(
-            (task) => classify(task, now) === list.key,
-          ).length
+          const count = tasksForList(tasks, list.key, now).length
           const isActive = list.key === activeList
           return (
             <button
