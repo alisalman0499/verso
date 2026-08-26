@@ -44,5 +44,15 @@ export function useTasks() {
     setTasks((prev) => prev.filter((task) => task.id !== id))
   }
 
-  return { tasks, addTask, toggleDone, deleteTask }
+  function setScheduledAt(id: string, scheduledAt: string | null) {
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === id
+          ? { ...task, scheduledAt, updatedAt: new Date().toISOString() }
+          : task,
+      ),
+    )
+  }
+
+  return { tasks, addTask, toggleDone, deleteTask, setScheduledAt }
 }
