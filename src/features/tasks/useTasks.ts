@@ -3,6 +3,14 @@ import { CURRENT_USER_ID } from '../../lib/currentUser'
 import { getTasks, saveTasks } from '../../lib/storage'
 import type { Task } from '../../types/task'
 
+// The shape updateTask accepts: one function for every editable field,
+// instead of a setter per field. `Partial<...>` makes each key optional so
+// a caller passes only what changed; `Omit<...>` drops the four fields
+// nothing may edit — identity and timestamps are ours to manage.
+export type TaskPatch = Partial<
+  Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+>
+
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>(() => getTasks())
 
@@ -44,15 +52,15 @@ export function useTasks() {
     setTasks((prev) => prev.filter((task) => task.id !== id))
   }
 
-  function setScheduledAt(id: string, scheduledAt: string | null) {
+  function updateTask(id: string, patch: TaskPatch) {
     setTasks((prev) =>
       prev.map((task) =>
         task.id === id
-          ? { ...task, scheduledAt, updatedAt: new Date().toISOString() }
+          ? { ...task, ...patch, updatedAt: new Date().toISOString() }
           : task,
       ),
     )
   }
 
-  return { tasks, addTask, toggleDone, deleteTask, setScheduledAt }
+  return { tasks, addTask, toggleDone, deleteTask, updateTask }
 }

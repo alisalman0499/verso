@@ -4,20 +4,21 @@ import {
   toDatetimeLocalValue,
 } from '../../lib/time'
 import { classify, LISTS } from './grouping'
+import type { TaskPatch } from './useTasks'
 import type { Task } from '../../types/task'
 
 type TaskDetailProps = {
   task: Task | null
   onToggleDone: (id: string) => void
   onDelete: (id: string) => void
-  onSetScheduledAt: (id: string, scheduledAt: string | null) => void
+  onUpdateTask: (id: string, patch: TaskPatch) => void
 }
 
 export default function TaskDetail({
   task,
   onToggleDone,
   onDelete,
-  onSetScheduledAt,
+  onUpdateTask,
 }: TaskDetailProps) {
   if (task === null) {
     return (
@@ -60,17 +61,17 @@ export default function TaskDetail({
                 }
                 onChange={(event) => {
                   const value = event.target.value
-                  onSetScheduledAt(
-                    task.id,
-                    value === '' ? null : fromDatetimeLocalValue(value),
-                  )
+                  onUpdateTask(task.id, {
+                    scheduledAt:
+                      value === '' ? null : fromDatetimeLocalValue(value),
+                  })
                 }}
                 className="bg-transparent text-right text-sm text-bone outline-none [color-scheme:dark]"
               />
               {task.scheduledAt !== null && (
                 <button
                   type="button"
-                  onClick={() => onSetScheduledAt(task.id, null)}
+                  onClick={() => onUpdateTask(task.id, { scheduledAt: null })}
                   className="font-mono text-[10px] text-mute-2 hover:text-bone"
                 >
                   clear

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { isSameDay } from '../../lib/time'
 import DayRail from './DayRail'
 import { LISTS, tasksForList, type ListKey } from './grouping'
 import Sidebar from './Sidebar'
@@ -8,7 +7,7 @@ import TaskList from './TaskList'
 import { useTasks } from './useTasks'
 
 export default function TasksPage() {
-  const { tasks, addTask, toggleDone, deleteTask, setScheduledAt } = useTasks()
+  const { tasks, addTask, toggleDone, deleteTask, updateTask } = useTasks()
   const [view, setView] = useState<ListKey>('today')
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [isComposerOpen, setComposerOpen] = useState(false)
@@ -18,10 +17,9 @@ export default function TasksPage() {
   const listLabel = LISTS.find((list) => list.key === view)?.label ?? ''
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null
 
-  const todaysTasks = tasks.filter(
-    (task) =>
-      task.scheduledAt !== null && isSameDay(new Date(task.scheduledAt), now),
-  )
+  // The tally counts exactly what the Today list shows, so the numbers in
+  // the header always agree with the rows on screen.
+  const todaysTasks = tasksForList(tasks, 'today', now)
   const doneToday = todaysTasks.filter((task) => task.done).length
 
   // "N" opens the composer from anywhere except while typing; Escape closes it.
@@ -31,7 +29,9 @@ export default function TasksPage() {
       const isTyping =
         target.tagName === 'INPUT' || target.tagName === 'TEXTAREA'
       if (event.key === 'Escape') setComposerOpen(false)
-      if (!isTyping && event.key.toLowerCase() === 'n') {
+      // Ignore Ctrl+N / Cmd+N — that's the browser's "new window".
+      const hasModifier = event.ctrlKey || event.metaKey || event.altKey
+      if (!isTyping && !hasModifier && event.key.toLowerCase() === 'n') {
         event.preventDefault()
         setComposerOpen(true)
       }
@@ -112,7 +112,7 @@ export default function TasksPage() {
         task={selectedTask}
         onToggleDone={toggleDone}
         onDelete={handleDeleteTask}
-        onSetScheduledAt={setScheduledAt}
+        onUpdateTask={updateTask}
       />
     </div>
   )

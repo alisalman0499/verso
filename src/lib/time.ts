@@ -13,6 +13,19 @@ export function formatDuration(minutes: number): string {
   return Number.isInteger(hours) ? `${hours}h` : `${hours.toFixed(1)}h`
 }
 
+const dayMonthFormatter = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'short',
+})
+
+// "14:30" when it's today, "3 Sep 14:30" otherwise. A flat list that shows
+// only the time can't tell today apart from next month.
+export function formatWhen(iso: string, now: Date): string {
+  const date = new Date(iso)
+  if (isSameDay(date, now)) return formatTime(iso)
+  return `${dayMonthFormatter.format(date)} ${formatTime(iso)}`
+}
+
 // Minutes since midnight, local time — used to place a task on the day rail.
 export function minutesSinceMidnight(iso: string): number {
   const date = new Date(iso)

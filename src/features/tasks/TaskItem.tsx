@@ -1,4 +1,4 @@
-import { formatDuration, formatTime } from '../../lib/time'
+import { formatDuration, formatWhen } from '../../lib/time'
 import type { Task } from '../../types/task'
 
 type TaskItemProps = {
@@ -72,8 +72,10 @@ export default function TaskItem({
         </span>
       )}
 
-      <span className="min-w-[52px] flex-none text-right font-mono text-[11px] text-mute">
-        {task.scheduledAt !== null ? formatTime(task.scheduledAt) : '—'}
+      <span className="min-w-[52px] flex-none text-right font-mono text-[11px] whitespace-nowrap text-mute">
+        {task.scheduledAt !== null
+          ? formatWhen(task.scheduledAt, new Date())
+          : '—'}
       </span>
     </div>
   )

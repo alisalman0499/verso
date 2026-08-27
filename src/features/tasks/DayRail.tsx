@@ -1,11 +1,15 @@
-import { isSameDay, minutesSinceMidnight, formatTime } from '../../lib/time'
+import { useEffect, useState } from 'react'
+import { formatTime, isSameDay, minutesSinceMidnight } from '../../lib/time'
 import type { Task } from '../../types/task'
 
-const START = 6 * 60 // 06:00
-const END = 22 * 60 // 22:00
+const BASE_START = 6 * 60 // 06:00
+const BASE_END = 22 * 60 // 22:00
 
-function percentAcross(minutes: number): number {
-  return ((minutes - START) / (END - START)) * 100
+const floorToHour = (minutes: number) => Math.floor(minutes / 60) * 60
+const ceilToHour = (minutes: number) => Math.ceil(minutes / 60) * 60
+
+function percentAcross(minutes: number, start: number, end: number): number {
+  return ((minutes - start) / (end - start)) * 100
 }
 
 type DayRailProps = {
@@ -13,31 +17,49 @@ type DayRailProps = {
 }
 
 // The day rail places ticks, task marks, and the now-line at exact
-// computed percentages along a 06:00–22:00 timeline. Tailwind can only
-// generate classes for values written literally in source, not ones
-// computed from task data at runtime — so this is the one component
-// where a scoped `style` prop is unavoidable. Everything else here
-// (color, size, spacing) still comes from Tailwind tokens.
+// computed percentages along the day. Tailwind can only generate classes
+// for values written literally in source, not ones computed from task
+// data at runtime — so this is the one component where a scoped `style`
+// prop is unavoidable. Everything else here (color, size, spacing) still
+// comes from Tailwind tokens.
 export default function DayRail({ tasks }: DayRailProps) {
-  const now = new Date()
-  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  // Holding "now" in state is what makes the now-line actually move:
+  // re-rendering on a timer is the only way the line advances.
+  const [now, setNow] = useState(() => new Date())
 
-  const ticks: { minutes: number; isHour: boolean }[] = []
-  for (let minutes = START; minutes <= END; minutes += 15) {
-    ticks.push({ minutes, isHour: minutes % 60 === 0 })
-  }
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000)
+    return () => clearInterval(id)
+  }, [])
+
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
 
   const todaysTasks = tasks.filter(
     (task): task is Task & { scheduledAt: string } =>
       task.scheduledAt !== null && isSameDay(new Date(task.scheduledAt), now),
   )
 
+  // The rail covers 06:00–22:00 by default, but stretches out to whole
+  // hours when a task (or the current time) falls outside that, so a
+  // mark is never positioned off the end of the rail.
+  const points = [
+    ...todaysTasks.map((task) => minutesSinceMidnight(task.scheduledAt)),
+    nowMinutes,
+  ]
+  const start = Math.min(BASE_START, ...points.map(floorToHour))
+  const end = Math.max(BASE_END, ...points.map(ceilToHour))
+
+  const ticks: { minutes: number; isHour: boolean }[] = []
+  for (let minutes = start; minutes <= end; minutes += 15) {
+    ticks.push({ minutes, isHour: minutes % 60 === 0 })
+  }
+
   return (
     <div className="relative mt-6 h-[62px] border-b border-pure/16">
       {ticks.map((tick) => (
         <i
           key={tick.minutes}
-          style={{ left: `${percentAcross(tick.minutes)}%` }}
+          style={{ left: `${percentAcross(tick.minutes, start, end)}%` }}
           className={
             tick.isHour
               ? 'absolute bottom-0 h-[11px] w-px bg-pure/34'
@@ -51,7 +73,7 @@ export default function DayRail({ tasks }: DayRailProps) {
         .map((tick) => (
           <span
             key={tick.minutes}
-            style={{ left: `${percentAcross(tick.minutes)}%` }}
+            style={{ left: `${percentAcross(tick.minutes, start, end)}%` }}
             className="absolute bottom-4 -translate-x-1/2 font-mono text-[9px] tracking-[0.1em] text-mute-2"
           >
             {String(tick.minutes / 60).padStart(2, '0')}
@@ -62,7 +84,7 @@ export default function DayRail({ tasks }: DayRailProps) {
         <i
           key={task.id}
           style={{
-            left: `${percentAcross(minutesSinceMidnight(task.scheduledAt))}%`,
+            left: `${percentAcross(minutesSinceMidnight(task.scheduledAt), start, end)}%`,
           }}
           className={
             task.done
@@ -72,20 +94,16 @@ export default function DayRail({ tasks }: DayRailProps) {
         />
       ))}
 
-      {nowMinutes >= START && nowMinutes <= END && (
-        <>
-          <i
-            style={{ left: `${percentAcross(nowMinutes)}%` }}
-            className="absolute top-0 bottom-0 w-px bg-pure"
-          />
-          <span
-            style={{ left: `${percentAcross(nowMinutes)}%` }}
-            className="absolute top-0 ml-[9px] font-mono text-[10px] tracking-[0.08em] text-pure"
-          >
-            {formatTime(now.toISOString())} now
-          </span>
-        </>
-      )}
+      <i
+        style={{ left: `${percentAcross(nowMinutes, start, end)}%` }}
+        className="absolute top-0 bottom-0 w-px bg-pure"
+      />
+      <span
+        style={{ left: `${percentAcross(nowMinutes, start, end)}%` }}
+        className="absolute top-0 ml-[9px] font-mono text-[10px] tracking-[0.08em] text-pure"
+      >
+        {formatTime(now.toISOString())} now
+      </span>
     </div>
   )
 }
