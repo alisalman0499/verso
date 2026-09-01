@@ -1,4 +1,4 @@
-import type { FocusEvent } from 'react'
+import { useState, type FocusEvent } from 'react'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '../../lib/time'
 import { classify, LISTS } from './grouping'
 import type { TaskPatch } from './useTasks'
@@ -19,6 +19,14 @@ export default function TaskDetail({
   onUpdateTask,
   now,
 }: TaskDetailProps) {
+  // Which task's delete button is armed, not a plain boolean — so that
+  // switching to a different task, whose id won't match, disarms it for
+  // free. A boolean would need an effect to reset it, and would leave a
+  // window where the wrong task gets deleted if you click through fast.
+  // Hooks can't run after a conditional return, so this sits above the
+  // null guard below.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
   if (task === null) {
     return (
       <aside className="flex min-h-0 flex-col border-l border-hairline bg-ink-2">
@@ -37,6 +45,7 @@ export default function TaskDetail({
   // parameter, and parameters can be reassigned. Copying it into a const
   // carries the narrowed type in, so no `as` cast is needed.
   const selected = task
+  const isConfirmingDelete = confirmDeleteId === selected.id
 
   const listLabel =
     LISTS.find((list) => list.key === classify(selected, now))?.label ?? ''
@@ -181,10 +190,20 @@ export default function TaskDetail({
         </button>
         <button
           type="button"
-          onClick={() => onDelete(selected.id)}
-          className="rounded-full border border-pure/16 px-4 py-1.5 text-sm text-mute hover:border-pure/30 hover:text-bone"
+          onClick={() => {
+            if (isConfirmingDelete) {
+              onDelete(selected.id)
+            } else {
+              setConfirmDeleteId(selected.id)
+            }
+          }}
+          className={
+            isConfirmingDelete
+              ? 'rounded-full border border-pure/30 bg-ink-3 px-4 py-1.5 text-sm text-bone'
+              : 'rounded-full border border-pure/16 px-4 py-1.5 text-sm text-mute hover:border-pure/30 hover:text-bone'
+          }
         >
-          Delete
+          {isConfirmingDelete ? 'Confirm delete' : 'Delete'}
         </button>
       </footer>
     </aside>
