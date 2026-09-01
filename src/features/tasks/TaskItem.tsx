@@ -16,12 +16,7 @@ export default function TaskItem({
 }: TaskItemProps) {
   return (
     <div
-      role="button"
-      tabIndex={0}
       onClick={() => onSelect(task.id)}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') onSelect(task.id)
-      }}
       className={
         isSelected
           ? 'group flex items-center gap-3 rounded-md border border-hairline bg-ink-3 px-4 py-3'
@@ -56,15 +51,20 @@ export default function TaskItem({
         )}
       </button>
 
-      <span
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation()
+          onSelect(task.id)
+        }}
         className={
           task.done
-            ? 'flex-1 truncate text-mute-2 line-through'
-            : 'flex-1 truncate text-bone'
+            ? 'flex-1 truncate text-left text-mute-2 line-through'
+            : 'flex-1 truncate text-left text-bone'
         }
       >
         {task.title}
-      </span>
+      </button>
 
       {task.estimateMinutes !== null && (
         <span className="flex-none font-mono text-[10px] text-mute-2">
