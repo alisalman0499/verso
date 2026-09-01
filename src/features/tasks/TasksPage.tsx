@@ -134,6 +134,7 @@ export default function TasksPage() {
 
       <TaskDetail
         task={selectedTask}
+        projects={projects}
         onToggleDone={toggleDone}
         onDelete={handleDeleteTask}
         onUpdateTask={updateTask}

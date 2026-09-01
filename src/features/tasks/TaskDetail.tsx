@@ -2,10 +2,12 @@ import { useState, type FocusEvent } from 'react'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '../../lib/time'
 import { classify, LISTS } from './grouping'
 import type { TaskPatch } from './useTasks'
+import type { Project } from '../../types/project'
 import type { Task } from '../../types/task'
 
 type TaskDetailProps = {
   task: Task | null
+  projects: Project[]
   onToggleDone: (id: string) => void
   onDelete: (id: string) => void
   onUpdateTask: (id: string, patch: TaskPatch) => void
@@ -14,6 +16,7 @@ type TaskDetailProps = {
 
 export default function TaskDetail({
   task,
+  projects,
   onToggleDone,
   onDelete,
   onUpdateTask,
@@ -161,6 +164,30 @@ export default function TaskDetail({
                 className="w-16 bg-transparent text-right text-sm text-bone placeholder-mute-2 outline-none [color-scheme:dark]"
               />
               <span className="font-mono text-[10px] text-mute-2">min</span>
+            </dd>
+          </div>
+          <div className="flex justify-between gap-4 border-b border-hairline py-3">
+            <dt className="font-mono text-[10px] tracking-[0.14em] text-mute-2 uppercase">
+              Project
+            </dt>
+            <dd className="text-right text-sm text-bone">
+              <select
+                value={selected.projectId ?? ''}
+                onChange={(event) => {
+                  const value = event.target.value
+                  onUpdateTask(selected.id, {
+                    projectId: value === '' ? null : value,
+                  })
+                }}
+                className="bg-transparent text-right text-sm text-bone outline-none [color-scheme:dark]"
+              >
+                <option value="">No project</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
             </dd>
           </div>
           <div className="flex justify-between gap-4 border-b border-hairline py-3">
