@@ -15,7 +15,7 @@ export default function Sidebar({
   now,
 }: SidebarProps) {
   return (
-    <aside className="flex min-h-0 flex-col border-r border-hairline bg-ink-2">
+    <aside className="hidden min-h-0 flex-col border-r border-hairline bg-ink-2 md:flex">
       <div className="flex items-baseline gap-2 px-6 py-6">
         <h1 className="font-serif text-2xl text-pure">Verso</h1>
       </div>

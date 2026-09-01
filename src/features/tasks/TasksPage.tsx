@@ -61,7 +61,7 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="grid h-dvh grid-cols-[254px_minmax(0,1fr)_348px] bg-ink text-bone">
+    <div className="grid h-dvh grid-cols-1 bg-ink text-bone md:grid-cols-[254px_minmax(0,1fr)] lg:grid-cols-[254px_minmax(0,1fr)_348px]">
       <Sidebar
         tasks={tasks}
         activeList={view}
@@ -70,7 +70,7 @@ export default function TasksPage() {
       />
 
       <main className="flex min-h-0 min-w-0 flex-col">
-        <div className="flex-none px-11 pt-8">
+        <div className="flex-none px-5 pt-8 lg:px-11">
           <div className="flex items-end justify-between gap-6">
             <div>
               <div className="font-mono text-[10px] tracking-[0.16em] text-mute uppercase">

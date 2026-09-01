@@ -29,7 +29,7 @@ export default function TaskDetail({
 
   if (task === null) {
     return (
-      <aside className="flex min-h-0 flex-col border-l border-hairline bg-ink-2">
+      <aside className="hidden min-h-0 flex-col border-l border-hairline bg-ink-2 lg:flex">
         <div className="flex-1 overflow-y-auto px-7 py-16 text-center">
           <p className="mb-1 font-serif text-xl text-bone">No task selected.</p>
           <span className="text-sm text-mute">
@@ -92,7 +92,7 @@ export default function TaskDetail({
   }
 
   return (
-    <aside className="flex min-h-0 flex-col border-l border-hairline bg-ink-2">
+    <aside className="hidden min-h-0 flex-col border-l border-hairline bg-ink-2 lg:flex">
       <div key={selected.id} className="flex-1 overflow-y-auto px-7 py-8">
         <div className="font-mono text-[10px] tracking-[0.14em] text-mute uppercase">
           {selected.done ? 'Completed' : 'Open'}

@@ -73,7 +73,7 @@ export default function TaskList({
   else groups = groupFlat(tasks)
 
   return (
-    <div className="flex-1 overflow-y-auto px-11 pt-2 pb-20">
+    <div className="flex-1 overflow-y-auto px-5 pt-2 pb-20 lg:px-11">
       {isComposerOpen && (
         <div className="mb-4 rounded-md border border-hairline bg-ink-3 px-4 py-3">
           <div className="flex items-center gap-3">
