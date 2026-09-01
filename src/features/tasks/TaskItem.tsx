@@ -6,6 +6,7 @@ type TaskItemProps = {
   isSelected: boolean
   onToggleDone: (id: string) => void
   onSelect: (id: string) => void
+  now: Date
 }
 
 export default function TaskItem({
@@ -13,6 +14,7 @@ export default function TaskItem({
   isSelected,
   onToggleDone,
   onSelect,
+  now,
 }: TaskItemProps) {
   return (
     <div
@@ -73,9 +75,7 @@ export default function TaskItem({
       )}
 
       <span className="min-w-[52px] flex-none text-right font-mono text-[11px] whitespace-nowrap text-mute">
-        {task.scheduledAt !== null
-          ? formatWhen(task.scheduledAt, new Date())
-          : '—'}
+        {task.scheduledAt !== null ? formatWhen(task.scheduledAt, now) : '—'}
       </span>
     </div>
   )

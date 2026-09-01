@@ -12,7 +12,17 @@ export default function TasksPage() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [isComposerOpen, setComposerOpen] = useState(false)
 
-  const now = new Date()
+  // The one clock for the whole page: held in state and ticked on a timer,
+  // rather than `new Date()` read fresh in every component that needs it.
+  // Reading it fresh looks harmless but means nothing re-renders on its own
+  // at midnight — the Today list would keep yesterday's contents until the
+  // user happened to click something.
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000)
+    return () => clearInterval(id)
+  }, [])
+
   const visibleTasks = tasksForList(tasks, view, now)
   const listLabel = LISTS.find((list) => list.key === view)?.label ?? ''
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null
@@ -52,7 +62,12 @@ export default function TasksPage() {
 
   return (
     <div className="grid h-dvh grid-cols-[254px_minmax(0,1fr)_348px] bg-ink text-bone">
-      <Sidebar tasks={tasks} activeList={view} onSelectList={setView} />
+      <Sidebar
+        tasks={tasks}
+        activeList={view}
+        onSelectList={setView}
+        now={now}
+      />
 
       <main className="flex min-h-0 min-w-0 flex-col">
         <div className="flex-none px-11 pt-8">
@@ -92,7 +107,7 @@ export default function TasksPage() {
             </div>
           </div>
 
-          <DayRail tasks={tasks} />
+          <DayRail tasks={tasks} now={now} />
         </div>
 
         <TaskList
@@ -105,6 +120,7 @@ export default function TasksPage() {
           isComposerOpen={isComposerOpen}
           onCloseComposer={() => setComposerOpen(false)}
           onAddTask={handleAddTask}
+          now={now}
         />
       </main>
 
@@ -113,6 +129,7 @@ export default function TasksPage() {
         onToggleDone={toggleDone}
         onDelete={handleDeleteTask}
         onUpdateTask={updateTask}
+        now={now}
       />
     </div>
   )

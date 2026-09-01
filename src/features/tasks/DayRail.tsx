@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { formatTime, isSameDay, minutesSinceMidnight } from '../../lib/time'
 import type { Task } from '../../types/task'
 
@@ -14,6 +13,7 @@ function percentAcross(minutes: number, start: number, end: number): number {
 
 type DayRailProps = {
   tasks: Task[]
+  now: Date
 }
 
 // The day rail places ticks, task marks, and the now-line at exact
@@ -22,16 +22,11 @@ type DayRailProps = {
 // data at runtime — so this is the one component where a scoped `style`
 // prop is unavoidable. Everything else here (color, size, spacing) still
 // comes from Tailwind tokens.
-export default function DayRail({ tasks }: DayRailProps) {
-  // Holding "now" in state is what makes the now-line actually move:
-  // re-rendering on a timer is the only way the line advances.
-  const [now, setNow] = useState(() => new Date())
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30_000)
-    return () => clearInterval(id)
-  }, [])
-
+//
+// `now` comes from the page rather than a clock of its own — see
+// TasksPage — so the now-line still moves (the page ticks every 30s), but
+// there is only one clock for the whole app instead of one per component.
+export default function DayRail({ tasks, now }: DayRailProps) {
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
 
   const todaysTasks = tasks.filter(

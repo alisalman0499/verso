@@ -20,6 +20,7 @@ type TaskListProps = {
   isComposerOpen: boolean
   onCloseComposer: () => void
   onAddTask: (title: string, scheduledAt: string) => void
+  now: Date
 }
 
 export default function TaskList({
@@ -32,6 +33,7 @@ export default function TaskList({
   isComposerOpen,
   onCloseComposer,
   onAddTask,
+  now,
 }: TaskListProps) {
   const titleRef = useRef<HTMLInputElement>(null)
   const dateRef = useRef<HTMLInputElement>(null)
@@ -129,6 +131,7 @@ export default function TaskList({
                   isSelected={task.id === selectedTaskId}
                   onToggleDone={onToggleDone}
                   onSelect={onSelectTask}
+                  now={now}
                 />
               ))}
             </div>

@@ -9,6 +9,7 @@ type TaskDetailProps = {
   onToggleDone: (id: string) => void
   onDelete: (id: string) => void
   onUpdateTask: (id: string, patch: TaskPatch) => void
+  now: Date
 }
 
 export default function TaskDetail({
@@ -16,6 +17,7 @@ export default function TaskDetail({
   onToggleDone,
   onDelete,
   onUpdateTask,
+  now,
 }: TaskDetailProps) {
   if (task === null) {
     return (
@@ -37,8 +39,7 @@ export default function TaskDetail({
   const selected = task
 
   const listLabel =
-    LISTS.find((list) => list.key === classify(selected, new Date()))?.label ??
-    ''
+    LISTS.find((list) => list.key === classify(selected, now))?.label ?? ''
 
   // The three fields below are uncontrolled: the browser owns what you type,
   // and we only read it back on blur. `key={selected.id}` on the wrapper is what

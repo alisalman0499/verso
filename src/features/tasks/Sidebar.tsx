@@ -5,15 +5,15 @@ type SidebarProps = {
   tasks: Task[]
   activeList: ListKey
   onSelectList: (key: ListKey) => void
+  now: Date
 }
 
 export default function Sidebar({
   tasks,
   activeList,
   onSelectList,
+  now,
 }: SidebarProps) {
-  const now = new Date()
-
   return (
     <aside className="flex min-h-0 flex-col border-r border-hairline bg-ink-2">
       <div className="flex items-baseline gap-2 px-6 py-6">
