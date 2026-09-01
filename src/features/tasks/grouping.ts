@@ -59,6 +59,29 @@ export function tasksForList(tasks: Task[], key: ListKey, now: Date): Task[] {
   return sortByScheduledAt(tasks.filter((task) => isInList(task, key, now)))
 }
 
+// The thing the main list is currently showing: either one of the fixed
+// lists above, or a project. A project isn't a ListKey — classify() and
+// isInList() only ever reason about done/scheduledAt, nothing about
+// projectId — so this is a separate, wider type layered on top rather than
+// a fifth ListKey.
+export type View =
+  { type: 'list'; key: ListKey } | { type: 'project'; projectId: string }
+
+export function tasksForView(tasks: Task[], view: View, now: Date): Task[] {
+  if (view.type === 'list') return tasksForList(tasks, view.key, now)
+  return sortByScheduledAt(
+    tasks.filter((task) => task.projectId === view.projectId),
+  )
+}
+
+// Open (not done) tasks in a project — what the sidebar count shows.
+// Completed tasks stay assigned to their project; they just don't count
+// here, the same way Today's tally only counts what's still open.
+export function openTaskCount(tasks: Task[], projectId: string): number {
+  return tasks.filter((task) => task.projectId === projectId && !task.done)
+    .length
+}
+
 function sortByScheduledAt(tasks: Task[]): Task[] {
   return [...tasks].sort((a, b) => {
     if (a.scheduledAt === null && b.scheduledAt === null) return 0

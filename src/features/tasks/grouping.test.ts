@@ -4,7 +4,9 @@ import {
   groupToday,
   groupUpcoming,
   isInList,
+  openTaskCount,
   tasksForList,
+  tasksForView,
 } from './grouping'
 import type { Task } from '../../types/task'
 
@@ -113,6 +115,53 @@ describe('tasksForList', () => {
       'b',
       'c',
     ])
+  })
+})
+
+describe('tasksForView', () => {
+  it('matches tasksForList for a list view', () => {
+    const tasks = [
+      makeTask({ id: 'a', scheduledAt: at(2026, 8, 3, 8) }),
+      makeTask({ id: 'b', scheduledAt: at(2026, 8, 20, 10) }),
+    ]
+    expect(
+      tasksForView(tasks, { type: 'list', key: 'today' }, NOW).map(
+        (task) => task.id,
+      ),
+    ).toEqual(tasksForList(tasks, 'today', NOW).map((task) => task.id))
+  })
+
+  it('returns only that project’s tasks, sorted, for a project view', () => {
+    const tasks = [
+      makeTask({ id: 'other', projectId: 'proj-2' }),
+      makeTask({
+        id: 'later',
+        projectId: 'proj-1',
+        scheduledAt: at(2026, 8, 3, 16),
+      }),
+      makeTask({
+        id: 'earlier',
+        projectId: 'proj-1',
+        scheduledAt: at(2026, 8, 3, 8),
+      }),
+    ]
+    expect(
+      tasksForView(tasks, { type: 'project', projectId: 'proj-1' }, NOW).map(
+        (task) => task.id,
+      ),
+    ).toEqual(['earlier', 'later'])
+  })
+})
+
+describe('openTaskCount', () => {
+  it('counts only open tasks in the project', () => {
+    const tasks = [
+      makeTask({ id: 'open', projectId: 'proj-1', done: false }),
+      makeTask({ id: 'done', projectId: 'proj-1', done: true }),
+      makeTask({ id: 'other-project', projectId: 'proj-2', done: false }),
+      makeTask({ id: 'no-project', projectId: null, done: false }),
+    ]
+    expect(openTaskCount(tasks, 'proj-1')).toBe(1)
   })
 })
 

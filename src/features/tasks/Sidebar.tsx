@@ -1,17 +1,20 @@
+import type { Project } from '../../types/project'
 import type { Task } from '../../types/task'
-import { LISTS, tasksForList, type ListKey } from './grouping'
+import { LISTS, tasksForList, type View } from './grouping'
 
 type SidebarProps = {
   tasks: Task[]
-  activeList: ListKey
-  onSelectList: (key: ListKey) => void
+  projects: Project[]
+  activeView: View
+  onSelectView: (view: View) => void
+  onAddProject: (name: string) => void
   now: Date
 }
 
 export default function Sidebar({
   tasks,
-  activeList,
-  onSelectList,
+  activeView,
+  onSelectView,
   now,
 }: SidebarProps) {
   return (
@@ -26,12 +29,13 @@ export default function Sidebar({
         </div>
         {LISTS.map((list) => {
           const count = tasksForList(tasks, list.key, now).length
-          const isActive = list.key === activeList
+          const isActive =
+            activeView.type === 'list' && activeView.key === list.key
           return (
             <button
               key={list.key}
               type="button"
-              onClick={() => onSelectList(list.key)}
+              onClick={() => onSelectView({ type: 'list', key: list.key })}
               className={
                 isActive
                   ? 'flex w-full items-center gap-3 rounded-md bg-ink-4 px-3 py-2 text-left text-pure'

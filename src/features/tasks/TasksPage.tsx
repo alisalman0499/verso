@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
 import DayRail from './DayRail'
-import { LISTS, tasksForList, type ListKey } from './grouping'
+import { LISTS, tasksForList, tasksForView, type View } from './grouping'
 import Sidebar from './Sidebar'
 import TaskDetail from './TaskDetail'
 import TaskList from './TaskList'
+import { useProjects } from './useProjects'
 import { useTasks } from './useTasks'
 
 export default function TasksPage() {
   const { tasks, addTask, toggleDone, deleteTask, updateTask } = useTasks()
-  const [view, setView] = useState<ListKey>('today')
+  const { projects, addProject } = useProjects()
+  const [view, setView] = useState<View>({ type: 'list', key: 'today' })
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [isComposerOpen, setComposerOpen] = useState(false)
 
@@ -23,9 +25,13 @@ export default function TasksPage() {
     return () => clearInterval(id)
   }, [])
 
-  const visibleTasks = tasksForList(tasks, view, now)
-  const listLabel = LISTS.find((list) => list.key === view)?.label ?? ''
+  const visibleTasks = tasksForView(tasks, view, now)
+  const listLabel =
+    view.type === 'list'
+      ? (LISTS.find((list) => list.key === view.key)?.label ?? '')
+      : (projects.find((project) => project.id === view.projectId)?.name ?? '')
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null
+  const isTodayView = view.type === 'list' && view.key === 'today'
 
   // The tally counts exactly what the Today list shows, so the numbers in
   // the header always agree with the rows on screen.
@@ -64,8 +70,10 @@ export default function TasksPage() {
     <div className="grid h-dvh grid-cols-1 bg-ink text-bone md:grid-cols-[254px_minmax(0,1fr)] lg:grid-cols-[254px_minmax(0,1fr)_348px]">
       <Sidebar
         tasks={tasks}
-        activeList={view}
-        onSelectList={setView}
+        projects={projects}
+        activeView={view}
+        onSelectView={setView}
+        onAddProject={addProject}
         now={now}
       />
 
@@ -74,12 +82,12 @@ export default function TasksPage() {
           <div className="flex items-end justify-between gap-6">
             <div>
               <div className="font-mono text-[10px] tracking-[0.16em] text-mute uppercase">
-                {view === 'today'
+                {isTodayView
                   ? now.toLocaleDateString('en-GB', { weekday: 'long' })
                   : 'List'}
               </div>
               <h2 className="mt-1.5 font-serif text-[clamp(34px,4.2vw,52px)] leading-none tracking-tight text-pure">
-                {view === 'today' ? (
+                {isTodayView ? (
                   <>
                     {now.getDate()}{' '}
                     <em className="text-bone">
@@ -111,7 +119,7 @@ export default function TasksPage() {
         </div>
 
         <TaskList
-          listKey={view}
+          view={view}
           listLabel={listLabel}
           tasks={visibleTasks}
           selectedTaskId={selectedTaskId}

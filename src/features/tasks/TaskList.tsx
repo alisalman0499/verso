@@ -4,14 +4,14 @@ import {
   groupFlat,
   groupToday,
   groupUpcoming,
-  type ListKey,
   type TaskGroup,
+  type View,
 } from './grouping'
 import TaskItem from './TaskItem'
 import type { Task } from '../../types/task'
 
 type TaskListProps = {
-  listKey: ListKey
+  view: View
   listLabel: string
   tasks: Task[]
   selectedTaskId: string | null
@@ -24,7 +24,7 @@ type TaskListProps = {
 }
 
 export default function TaskList({
-  listKey,
+  view,
   listLabel,
   tasks,
   selectedTaskId,
@@ -67,9 +67,13 @@ export default function TaskList({
     if (event.key === 'Enter') trySubmit()
   }
 
+  // A project view groups flat, same as All tasks — grouping it by day
+  // like Upcoming might read better once a project has enough tasks to
+  // tell, but that's a call to make once there's real data to look at.
   let groups: TaskGroup[]
-  if (listKey === 'today') groups = groupToday(tasks)
-  else if (listKey === 'upcoming') groups = groupUpcoming(tasks)
+  if (view.type === 'list' && view.key === 'today') groups = groupToday(tasks)
+  else if (view.type === 'list' && view.key === 'upcoming')
+    groups = groupUpcoming(tasks)
   else groups = groupFlat(tasks)
 
   return (
