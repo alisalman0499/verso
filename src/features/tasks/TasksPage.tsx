@@ -79,7 +79,7 @@ export default function TasksPage() {
 
       <main className="flex min-h-0 min-w-0 flex-col">
         <div className="flex-none px-5 pt-8 lg:px-11">
-          <div className="flex items-end justify-between gap-6">
+          <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
             <div>
               <div className="font-mono text-[10px] tracking-[0.16em] text-mute uppercase">
                 {isTodayView
@@ -99,7 +99,12 @@ export default function TasksPage() {
                 )}
               </h2>
             </div>
-            <div className="flex items-center gap-3.5 pb-1.5">
+            {/* ml-auto rather than relying on the parent's justify-between:
+                that only spaces items apart when they share a line. Below
+                ~500px this row wraps and the tally+button become the only
+                thing on their line — without ml-auto they'd snap to the
+                left edge instead of staying right-aligned. */}
+            <div className="ml-auto flex items-center gap-3.5 pb-1.5">
               <span className="font-mono text-[11px] whitespace-nowrap text-mute">
                 <b className="font-normal text-pure">{doneToday}</b> of{' '}
                 {todaysTasks.length} done today
