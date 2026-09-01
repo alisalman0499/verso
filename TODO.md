@@ -41,8 +41,9 @@ Then commit that task on its own, present tense, describing the change.
 **One commit per numbered item below.** Do not batch them.
 
 Ordering note: this is not the order in the original roadmap. Tasks 1–2 are
-fully specified and safe to run unattended; tasks 3–4 contain decisions that
-need the owner, so they are last. Do not reorder them back.
+fully specified and safe to run unattended; tasks 3–4 contained decisions that
+needed the owner, so they were last. Task 3 is done. Task 4 needs the context
+refactor described in it before any UI work starts.
 
 ---
 
@@ -178,62 +179,57 @@ scrollbar at any width, and the list stays readable.
 
 ---
 
-## Task 3 — Projects — ask before writing code
+## Task 3 — Projects — done
 
-`Task.projectId` exists and is always `null`. The mockup has a `PROJECTS` sidebar
-section (`verso-task-manager.html:338`, list at `:436`) with a swatch, a name,
-and an open count. Nothing in the app implements it.
+Built: `src/types/project.ts`; `getProjects`/`saveProjects` in `lib/storage.ts`
+(the parse-and-recover logic is now a shared `readList` helper so both entities
+go through one place); `useProjects.ts` mirroring `useTasks.ts`; a collapsible
+`PROJECTS` section in `Sidebar.tsx` with a "+ New project" row, a swatch per
+project, and an open-task count via the new `openTaskCount` in `grouping.ts`;
+clicking a project filters the main list via the new `View` tagged union
+(`{ type: 'list', key } | { type: 'project', projectId }`), which replaced the
+bare `ListKey` that `TasksPage` used to hold; and a Project select in
+`TaskDetail` between Estimate and List, using the `projectId` `TaskPatch`
+already supported.
 
-Two decisions are the owner's, not yours. **Ask both before writing any code, in
-one question:**
+One decision from the original write-up was answered differently than
+proposed: **task state was not lifted into a context.** `TasksPage` is still
+the only caller of `useTasks`, and passes `tasks`/`projects` down as props —
+exactly the shape it already used for the sidebar counts. Lifting into a
+context is a real architectural change and this feature did not need it to be
+correct; bundling it in would have mixed a refactor into a feature commit.
+**This means the state-copy problem below is still open** and will bite the
+next thing that needs to call `useTasks` or `useProjects` from somewhere other
+than `TasksPage` — the command palette below is exactly that thing.
 
-1. **The `Project` shape.** `CLAUDE.md` fixes `Task` but says nothing about
-   `Project`. Propose `{ id, userId, name, createdAt, updatedAt }` and confirm.
-   Specifically: is there a colour or swatch field? The mockup draws a swatch,
-   but the design rule is "no colour", so it is probably a monochrome dot — say
-   so and check.
-2. **Where task state lives.** This is the real blocker. `useTasks.ts:15` holds
-   tasks in a plain `useState` inside the hook, so every caller gets its own
-   independent copy that overwrites the others on save. `TasksPage` is currently
-   the only caller, so it works today. A projects sidebar that needs task counts,
-   or anything else that calls `useTasks`, breaks it. The fix is to lift the
-   state into a React context provider mounted in `app/`, with `useTasks` reading
-   from it. That is an architectural change, and `CLAUDE.md` says not to make
-   those silently.
-
-Once both are answered, the shape of the work is:
-
-- `src/types/project.ts` for the type.
-- `getProjects` / `saveProjects` in `lib/storage.ts` under a `verso.projects`
-  key, mirroring the existing tasks functions, including the same corrupt-data
-  handling.
-- A `useProjects` hook alongside `useTasks`.
-- A `PROJECTS` section in `Sidebar.tsx` below `LISTS`, counting open tasks per
-  project.
-- Assigning a project in `TaskDetail` — `updateTask` already accepts `projectId`,
-  so this is a select element, not new machinery.
-
-**Commit:** split sensibly; at minimum keep the state lifting in its own commit,
-separate from the projects feature.
+No project deletion or renaming yet — deleting needs an answer for what happens
+to the tasks left pointing at a deleted project, and that wasn't decided here.
 
 ---
 
-## Task 4 — Command palette (⌘K) — depends on Task 3
+## Task 4 — Command palette (⌘K)
 
 Present in the mockup (`verso-task-manager.html:389`), not ported. It searches
-tasks _and_ projects, so it needs both to exist and needs shared state, which is
-why it comes after Task 3.
+tasks _and_ projects, both of which now exist (Task 3).
 
-Do not start this until Task 3 is merged. When you do, plan it first — it
-introduces a global keyboard shortcut, a focus trap, and list-navigation
-semantics, none of which exist anywhere in the codebase yet.
+**Before writing any code: lift `useTasks` and `useProjects` into a context
+provider mounted in `app/`.** The palette is a second caller — it needs the
+same tasks and projects `TasksPage` has, from a different place in the tree —
+and `useTasks.ts:15` / `useProjects.ts` both hold state in a plain `useState`,
+so a second caller gets its own independent copy that overwrites the other on
+save. This was deferred out of Task 3 deliberately; it cannot be deferred out of
+this one.
+
+Once state is shared, plan the palette itself before coding — it introduces a
+global keyboard shortcut, a focus trap, and list-navigation semantics, none of
+which exist anywhere in the codebase yet.
 
 ---
 
 ## Known-good state
 
 As of the last commit, `npm run build`, `npm run lint`, `npm run format:check`
-and `npm test` all pass. 25 tests across `src/lib/time.test.ts` and
+and `npm test` all pass. 32 tests across `src/lib/time.test.ts` and
 `src/features/tasks/grouping.test.ts`.
 
 Two things worth knowing that are not bugs:
