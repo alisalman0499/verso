@@ -1,4 +1,4 @@
-import { minutesSinceMidnight } from '../../lib/time'
+import { minutesSinceMidnight, toDateKey } from '../../lib/time'
 import type { Task } from '../../types/task'
 
 // Task-specific logic, so it lives in the feature rather than lib/.
@@ -102,14 +102,21 @@ const dayLabelFormatter = new Intl.DateTimeFormat('en-GB', {
 })
 
 export function groupUpcoming(tasks: Task[]): TaskGroup[] {
+  // Keyed on the date, not the formatted label — "Sat 30 Aug" carries no
+  // year, so the same day-and-month a year apart would otherwise collapse
+  // into one group.
   const groups = new Map<string, TaskGroup>()
 
   for (const task of tasks) {
     if (task.scheduledAt === null) continue
-    const label = dayLabelFormatter.format(new Date(task.scheduledAt))
-    const group = groups.get(label) ?? { label, items: [] }
+    const date = new Date(task.scheduledAt)
+    const key = toDateKey(date)
+    const group = groups.get(key) ?? {
+      label: dayLabelFormatter.format(date),
+      items: [],
+    }
     group.items.push(task)
-    groups.set(label, group)
+    groups.set(key, group)
   }
 
   return [...groups.values()]

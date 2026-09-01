@@ -56,3 +56,14 @@ export function toDatetimeLocalValue(iso: string): string {
 export function fromDatetimeLocalValue(value: string): string {
   return new Date(value).toISOString()
 }
+
+// "YYYY-MM-DD", local time. For grouping tasks by day — never
+// `toISOString().slice(0, 10)`, which is UTC and shifts the day near
+// midnight in any timezone ahead of it.
+export function toDateKey(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const year = date.getFullYear()
+  const month = pad(date.getMonth() + 1)
+  const day = pad(date.getDate())
+  return `${year}-${month}-${day}`
+}

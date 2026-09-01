@@ -4,6 +4,7 @@ import {
   formatWhen,
   fromDatetimeLocalValue,
   isSameDay,
+  toDateKey,
   toDatetimeLocalValue,
 } from './time'
 
@@ -65,6 +66,18 @@ describe('formatWhen', () => {
   it('adds the date for a past day too', () => {
     const iso = new Date(2026, 7, 31, 8, 5).toISOString()
     expect(formatWhen(iso, now)).toBe('31 Aug 08:05')
+  })
+})
+
+describe('toDateKey', () => {
+  it('pads single-digit months and days', () => {
+    expect(toDateKey(new Date(2026, 0, 5))).toBe('2026-01-05')
+  })
+
+  it('distinguishes the same day and month across years', () => {
+    expect(toDateKey(new Date(2026, 7, 30))).not.toBe(
+      toDateKey(new Date(2027, 7, 30)),
+    )
   })
 })
 

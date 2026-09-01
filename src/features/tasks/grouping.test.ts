@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { classify, groupToday, isInList, tasksForList } from './grouping'
+import {
+  classify,
+  groupToday,
+  groupUpcoming,
+  isInList,
+  tasksForList,
+} from './grouping'
 import type { Task } from '../../types/task'
 
 // "Now" for every test in this file: 3 September 2026, 09:00 local time.
@@ -140,5 +146,32 @@ describe('groupToday', () => {
     const groups = groupToday([makeTask({ scheduledAt: at(2026, 8, 3, 9) })])
     expect(groups).toHaveLength(1)
     expect(groups[0].label).toBe('Morning')
+  })
+})
+
+describe('groupUpcoming', () => {
+  it('keeps the same day-and-month a year apart as two groups', () => {
+    // Regression: grouping used to key on the formatted label
+    // ("Sun 30 Aug"), which carries no year, so this pair collapsed into
+    // one group.
+    const tasks = [
+      makeTask({ id: 'this-year', scheduledAt: at(2026, 7, 30, 10) }),
+      makeTask({ id: 'next-year', scheduledAt: at(2027, 7, 30, 10) }),
+    ]
+    const groups = groupUpcoming(tasks)
+    expect(groups).toHaveLength(2)
+    expect(
+      groups.flatMap((group) => group.items.map((task) => task.id)),
+    ).toEqual(['this-year', 'next-year'])
+  })
+
+  it('groups same-day tasks together under one label', () => {
+    const tasks = [
+      makeTask({ id: 'a', scheduledAt: at(2026, 8, 20, 9) }),
+      makeTask({ id: 'b', scheduledAt: at(2026, 8, 20, 16) }),
+    ]
+    const groups = groupUpcoming(tasks)
+    expect(groups).toHaveLength(1)
+    expect(groups[0].items.map((task) => task.id)).toEqual(['a', 'b'])
   })
 })
