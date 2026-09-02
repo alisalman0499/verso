@@ -67,6 +67,12 @@ export default function TaskList({
     if (event.key === 'Enter') trySubmit()
   }
 
+  // The fixed list labels are ordinary words and read better lowercased
+  // mid-sentence ("Nothing in today."), but a project name is a proper noun
+  // and keeps its capitalisation — "Nothing in halden." reads like a typo.
+  const emptyLabel =
+    view.type === 'project' ? listLabel : listLabel.toLowerCase()
+
   // A project view groups flat, same as All tasks — grouping it by day
   // like Upcoming might read better once a project has enough tasks to
   // tell, but that's a call to make once there's real data to look at.
@@ -109,8 +115,8 @@ export default function TaskList({
         <div className="py-16 text-center">
           <p className="mb-1 font-serif text-xl text-bone">Clear.</p>
           <span className="text-sm text-mute">
-            Nothing in {listLabel.toLowerCase()}. Press{' '}
-            <span className="font-mono">N</span> to add the first task.
+            Nothing in {emptyLabel}. Press <span className="font-mono">N</span>{' '}
+            to add the first task.
           </span>
         </div>
       ) : (
