@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import DayRail from './DayRail'
-import { LISTS, tasksForList, tasksForView, type View } from './grouping'
+import {
+  LISTS,
+  projectIdForView,
+  tasksForList,
+  tasksForView,
+  type View,
+} from './grouping'
 import Sidebar from './Sidebar'
 import TaskDetail from './TaskDetail'
 import TaskList from './TaskList'
@@ -57,7 +63,9 @@ export default function TasksPage() {
   }, [])
 
   function handleAddTask(title: string, scheduledAt: string) {
-    addTask(title, scheduledAt)
+    // TasksPage is what knows which view is open, so the project comes from
+    // here — TaskList stays unaware that projects exist at all.
+    addTask(title, scheduledAt, projectIdForView(view))
     setComposerOpen(false)
   }
 

@@ -5,6 +5,7 @@ import {
   groupUpcoming,
   isInList,
   openTaskCount,
+  projectIdForView,
   tasksForList,
   tasksForView,
 } from './grouping'
@@ -131,16 +132,22 @@ describe('tasksForView', () => {
     ).toEqual(tasksForList(tasks, 'today', NOW).map((task) => task.id))
   })
 
-  it('returns only that project’s tasks, sorted, for a project view', () => {
+  it('returns only that project’s tasks, sorted by date, for a project view', () => {
     const tasks = [
       makeTask({ id: 'other', projectId: 'proj-2' }),
+      makeTask({ id: 'undated', projectId: 'proj-1', scheduledAt: null }),
       makeTask({
-        id: 'later',
+        id: 'next-week',
+        projectId: 'proj-1',
+        scheduledAt: at(2026, 8, 10, 9),
+      }),
+      makeTask({
+        id: 'later-today',
         projectId: 'proj-1',
         scheduledAt: at(2026, 8, 3, 16),
       }),
       makeTask({
-        id: 'earlier',
+        id: 'earlier-today',
         projectId: 'proj-1',
         scheduledAt: at(2026, 8, 3, 8),
       }),
@@ -149,7 +156,32 @@ describe('tasksForView', () => {
       tasksForView(tasks, { type: 'project', projectId: 'proj-1' }, NOW).map(
         (task) => task.id,
       ),
-    ).toEqual(['earlier', 'later'])
+    ).toEqual(['earlier-today', 'later-today', 'next-week', 'undated'])
+  })
+
+  it('keeps completed tasks in their project view', () => {
+    const tasks = [
+      makeTask({ id: 'done', projectId: 'proj-1', done: true }),
+      makeTask({ id: 'open', projectId: 'proj-1', done: false }),
+    ]
+    expect(
+      tasksForView(tasks, { type: 'project', projectId: 'proj-1' }, NOW)
+        .map((task) => task.id)
+        .sort(),
+    ).toEqual(['done', 'open'])
+  })
+})
+
+describe('projectIdForView', () => {
+  it('assigns the project when one is being viewed', () => {
+    expect(projectIdForView({ type: 'project', projectId: 'proj-1' })).toBe(
+      'proj-1',
+    )
+  })
+
+  it('leaves a task unassigned when a fixed list is being viewed', () => {
+    expect(projectIdForView({ type: 'list', key: 'today' })).toBeNull()
+    expect(projectIdForView({ type: 'list', key: 'all' })).toBeNull()
   })
 })
 

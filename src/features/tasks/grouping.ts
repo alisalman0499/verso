@@ -74,6 +74,13 @@ export function tasksForView(tasks: Task[], view: View, now: Date): Task[] {
   )
 }
 
+// The project a task created from this view should belong to. Creating a
+// task while looking at a project puts it in that project; creating one
+// from any of the fixed lists leaves it unassigned.
+export function projectIdForView(view: View): string | null {
+  return view.type === 'project' ? view.projectId : null
+}
+
 // Open (not done) tasks in a project — what the sidebar count shows.
 // Completed tasks stay assigned to their project; they just don't count
 // here, the same way Today's tally only counts what's still open.

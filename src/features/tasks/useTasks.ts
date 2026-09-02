@@ -21,14 +21,18 @@ export function useTasks() {
     saveTasks(tasks)
   }, [tasks])
 
-  function addTask(title: string, scheduledAt: string) {
+  function addTask(
+    title: string,
+    scheduledAt: string,
+    projectId: string | null,
+  ) {
     const now = new Date().toISOString()
     const task: Task = {
       id: crypto.randomUUID(),
       userId: CURRENT_USER_ID,
       title,
       notes: '',
-      projectId: null,
+      projectId,
       scheduledAt,
       estimateMinutes: null,
       done: false,
