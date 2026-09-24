@@ -103,3 +103,26 @@ export function toDateKey(date: Date): string {
   const day = pad(date.getDate())
   return `${year}-${month}-${day}`
 }
+
+// A duration at the very end of a line, with an explicit unit: "30m",
+// "1h 30m", "1.5h", "2 hours". The unit is required so that a title ending
+// in a plain number ("Read chapter 3") is never mistaken for an estimate.
+const TRAILING_DURATION = new RegExp(
+  String.raw`^(.*?\S)\s+(\d+(?:[.,]\d+)?\s*${HOUR_UNIT}(?:\s*\d+\s*${MINUTE_UNIT}?)?|\d+\s*${MINUTE_UNIT})$`,
+  'i',
+)
+
+// Splits "Write intro 45m" into the title "Write intro" and 45 minutes, so
+// a list of steps can be typed in one go. Returns the text untouched, with
+// no minutes, when it doesn't end in a duration.
+export function splitTrailingDuration(text: string): {
+  title: string
+  minutes: number | null
+} {
+  const trimmed = text.trim()
+  const match = trimmed.match(TRAILING_DURATION)
+  if (match === null) return { title: trimmed, minutes: null }
+  const minutes = parseDuration(match[2])
+  if (minutes === null) return { title: trimmed, minutes: null }
+  return { title: match[1], minutes }
+}

@@ -5,6 +5,7 @@ import {
   fromDatetimeLocalValue,
   isSameDay,
   parseDuration,
+  splitTrailingDuration,
   toDateKey,
   toDatetimeLocalValue,
 } from './time'
@@ -138,5 +139,36 @@ describe('isSameDay', () => {
 
   it('is false for the same date in different years', () => {
     expect(isSameDay(new Date(2026, 8, 3), new Date(2027, 8, 3))).toBe(false)
+  })
+})
+
+describe('splitTrailingDuration', () => {
+  it.each([
+    ['Write intro 45m', 'Write intro', 45],
+    ['Draft body 1h', 'Draft body', 60],
+    ['Draft body 1h 30m', 'Draft body', 90],
+    ['Draft body 1h30', 'Draft body', 90],
+    ['Revise 1,5h', 'Revise', 90],
+    ['Watch lecture 2 hours', 'Watch lecture', 120],
+    ['Email Anna 5 min', 'Email Anna', 5],
+  ])('splits %j', (text, title, minutes) => {
+    expect(splitTrailingDuration(text)).toEqual({ title, minutes })
+  })
+
+  it.each([
+    'Read chapter 3',
+    'Room 101',
+    '45m',
+    'Watch 2 hours of lecture',
+    'Just a title',
+  ])('leaves %j alone', (text) => {
+    expect(splitTrailingDuration(text)).toEqual({ title: text, minutes: null })
+  })
+
+  it('trims surrounding whitespace', () => {
+    expect(splitTrailingDuration('  Outline 20m  ')).toEqual({
+      title: 'Outline',
+      minutes: 20,
+    })
   })
 })

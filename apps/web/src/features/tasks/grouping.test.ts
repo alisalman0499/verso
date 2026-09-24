@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import {
   classify,
+  estimateFromSubtasks,
   groupToday,
   groupUpcoming,
   isInList,
   isOverdue,
   openTaskCount,
+  progressByParent,
   projectIdForView,
+  subtasksOf,
   tasksForList,
   tasksForView,
+  topLevelTasks,
 } from './grouping'
 import type { Task } from '../../types/task'
 
@@ -291,5 +295,60 @@ describe('isOverdue', () => {
   it('is false once the task is done, even if it was done late', () => {
     const task = makeTask({ dueAt: at(2026, 8, 1, 12), completedAt: DONE_AT })
     expect(isOverdue(task, NOW)).toBe(false)
+  })
+})
+
+describe('subtasks', () => {
+  const parent = makeTask({ id: 'parent' })
+  const first = makeTask({
+    id: 'first',
+    parentId: 'parent',
+    position: 0,
+    estimateMinutes: 30,
+    completedAt: DONE_AT,
+  })
+  const second = makeTask({
+    id: 'second',
+    parentId: 'parent',
+    position: 1,
+    estimateMinutes: 45,
+  })
+  const unestimated = makeTask({ id: 'third', parentId: 'parent', position: 2 })
+  const other = makeTask({ id: 'other' })
+
+  it('keeps only top-level tasks for the lists', () => {
+    const tasks = [parent, first, second, other]
+    expect(topLevelTasks(tasks).map((t) => t.id)).toEqual(['parent', 'other'])
+  })
+
+  it("returns a task's subtasks in position order", () => {
+    const tasks = [second, other, unestimated, first, parent]
+    expect(subtasksOf(tasks, 'parent').map((t) => t.id)).toEqual([
+      'first',
+      'second',
+      'third',
+    ])
+  })
+
+  it('counts done and total subtasks per parent', () => {
+    const progress = progressByParent([parent, first, second, other])
+    expect(progress.get('parent')).toEqual({
+      done: 1,
+      total: 2,
+      estimate: { total: 75, remaining: 45 },
+    })
+    expect(progress.has('other')).toBe(false)
+  })
+
+  it('adds up subtask estimates, and what is left of them', () => {
+    expect(estimateFromSubtasks([first, second, unestimated])).toEqual({
+      total: 75,
+      remaining: 45,
+    })
+  })
+
+  it('has no estimate when no subtask has one', () => {
+    expect(estimateFromSubtasks([unestimated])).toBeNull()
+    expect(estimateFromSubtasks([])).toBeNull()
   })
 })
