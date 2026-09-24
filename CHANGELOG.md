@@ -5,6 +5,23 @@ merged pull request, newest first. For the exact code changes see the git
 history; for the reasoning behind technical decisions see
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
+## 2026-09-24 · Subtasks
+
+- **Break a task into steps.** A Subtasks section sits above Notes. Tick steps
+  off, delete them, and add them by typing: `Write intro 45m` creates "Write
+  intro" with a 45-minute estimate. The field stays open, so a whole list can
+  be typed in one go. _Why:_ a big task is easier to start as a list of small,
+  concrete steps.
+- **Progress on the task.** The task's row shows how many steps are done
+  (`2/5`), and its estimate becomes the steps' total, with what's left:
+  `2h 15m · 1h 45m left`. _Why:_ an honest total for a big task, from numbers
+  you already entered.
+- **"All steps done — mark the task done?"** When the last step is ticked,
+  Verso offers to finish the task rather than doing it for you, since the task
+  may still need a final step that isn't on the list.
+- Subtasks stay under their task: they don't appear as rows, in counts, or on
+  the day rail, and they move with the task when it changes project.
+
 ## 2026-09-24 · Easier estimates
 
 - **Estimates are shown as hours and minutes**: `1h 30m` instead of `1.5h`.

@@ -71,8 +71,12 @@ export function useTasks() {
   const deleteMutation = useMutation({
     mutationKey: TASKS_KEY,
     mutationFn: api.deleteTask,
+    // The database deletes a task's subtasks with it; the cache does the same
+    // so they don't linger until the next refetch.
     onMutate: (id: string) =>
-      optimistically((tasks) => tasks.filter((task) => task.id !== id)),
+      optimistically((tasks) =>
+        tasks.filter((task) => task.id !== id && task.parentId !== id),
+      ),
     onError: (_error, _id, context) => rollBack(context),
     onSettled: resyncWhenIdle,
   })
@@ -83,6 +87,16 @@ export function useTasks() {
     projectId: string | null,
   ) {
     createMutation.mutate({ title, scheduledAt, projectId })
+  }
+
+  // Subtasks have no Do on time of their own yet, and the server gives them
+  // their parent's project.
+  function addSubtask(
+    parentId: string,
+    title: string,
+    estimateMinutes: number | null,
+  ) {
+    createMutation.mutate({ title, parentId, estimateMinutes })
   }
 
   function updateTask(id: string, patch: UpdateTaskInput) {
@@ -108,6 +122,7 @@ export function useTasks() {
     isError: query.isError,
     retry: () => void query.refetch(),
     addTask,
+    addSubtask,
     toggleDone,
     deleteTask,
     updateTask,

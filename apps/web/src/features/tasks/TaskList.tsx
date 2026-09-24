@@ -4,6 +4,7 @@ import {
   groupFlat,
   groupToday,
   groupUpcoming,
+  type Progress,
   type TaskGroup,
   type View,
 } from './grouping'
@@ -14,6 +15,8 @@ type TaskListProps = {
   view: View
   listLabel: string
   tasks: Task[]
+  // Subtask progress per parent, for the "2/5" on each row.
+  progress: Map<string, Progress>
   // The first load hasn't finished, or failed. Either way the list is empty
   // for a reason other than "you have no tasks", so the empty state is wrong.
   loadState: 'loading' | 'error' | 'ready'
@@ -31,6 +34,7 @@ export default function TaskList({
   view,
   listLabel,
   tasks,
+  progress,
   loadState,
   onRetryLoad,
   selectedTaskId,
@@ -157,6 +161,7 @@ export default function TaskList({
                 <TaskItem
                   key={task.id}
                   task={task}
+                  progress={progress.get(task.id) ?? null}
                   isSelected={task.id === selectedTaskId}
                   onToggleDone={onToggleDone}
                   onSelect={onSelectTask}

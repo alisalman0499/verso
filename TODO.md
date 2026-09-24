@@ -50,7 +50,7 @@ item, in this order. Each gets a short plan approved before building.
 - [x] **Estimate rework.** Entered and shown as hours and minutes (`45m`,
       `1h 30m`), typed as `1h 30m` / `90` / `1.5h` in a text field with quick
       picks (15m · 30m · 1h · 2h). No number spinner. Still stored in minutes.
-- [ ] **Manual subtasks.** A Subtasks section above Notes in the detail panel:
+- [x] **Manual subtasks.** A Subtasks section above Notes in the detail panel:
       add, tick off, delete. Subtasks appear only under their parent; list rows
       show progress (`2/5`). A parent with subtasks shows its estimate as the
       sum of theirs. Step 2's AI breakdown later fills this same list.

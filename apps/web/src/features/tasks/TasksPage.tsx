@@ -3,9 +3,12 @@ import DayRail from './DayRail'
 import {
   isDone,
   LISTS,
+  progressByParent,
   projectIdForView,
+  subtasksOf,
   tasksForList,
   tasksForView,
+  topLevelTasks,
   type View,
 } from './grouping'
 import Sidebar from './Sidebar'
@@ -21,6 +24,7 @@ export default function TasksPage() {
     isError,
     retry,
     addTask,
+    addSubtask,
     toggleDone,
     deleteTask,
     updateTask,
@@ -41,17 +45,24 @@ export default function TasksPage() {
     return () => clearInterval(id)
   }, [])
 
-  const visibleTasks = tasksForView(tasks, view, now)
+  // Everything below the lists works on top-level tasks: subtasks are shown
+  // under their parent, never as rows, counts or marks of their own.
+  const topLevel = topLevelTasks(tasks)
+  const progress = progressByParent(tasks)
+
+  const visibleTasks = tasksForView(topLevel, view, now)
   const listLabel =
     view.type === 'list'
       ? (LISTS.find((list) => list.key === view.key)?.label ?? '')
       : (projects.find((project) => project.id === view.projectId)?.name ?? '')
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null
+  const selectedSubtasks =
+    selectedTask === null ? [] : subtasksOf(tasks, selectedTask.id)
   const isTodayView = view.type === 'list' && view.key === 'today'
 
   // The tally counts exactly what the Today list shows, so the numbers in
   // the header always agree with the rows on screen.
-  const todaysTasks = tasksForList(tasks, 'today', now)
+  const todaysTasks = tasksForList(topLevel, 'today', now)
   const doneToday = todaysTasks.filter(isDone).length
 
   // "N" opens the composer from anywhere except while typing; Escape closes it.
@@ -87,7 +98,7 @@ export default function TasksPage() {
   return (
     <div className="grid h-dvh grid-cols-1 bg-ink text-bone md:grid-cols-[254px_minmax(0,1fr)] lg:grid-cols-[254px_minmax(0,1fr)_348px]">
       <Sidebar
-        tasks={tasks}
+        tasks={topLevel}
         projects={projects}
         activeView={view}
         onSelectView={setView}
@@ -138,13 +149,14 @@ export default function TasksPage() {
             </div>
           </div>
 
-          <DayRail tasks={tasks} now={now} />
+          <DayRail tasks={topLevel} now={now} />
         </div>
 
         <TaskList
           view={view}
           listLabel={listLabel}
           tasks={visibleTasks}
+          progress={progress}
           loadState={isLoading ? 'loading' : isError ? 'error' : 'ready'}
           onRetryLoad={retry}
           selectedTaskId={selectedTaskId}
@@ -159,10 +171,13 @@ export default function TasksPage() {
 
       <TaskDetail
         task={selectedTask}
+        subtasks={selectedSubtasks}
         projects={projects}
         onToggleDone={toggleDone}
         onDelete={handleDeleteTask}
         onUpdateTask={updateTask}
+        onAddSubtask={addSubtask}
+        onDeleteSubtask={deleteTask}
         now={now}
       />
     </div>

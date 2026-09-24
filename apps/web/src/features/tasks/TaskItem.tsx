@@ -1,9 +1,11 @@
 import { formatDuration, formatWhen } from '../../lib/time'
 import type { Task } from '../../types/task'
-import { isDone, isOverdue } from './grouping'
+import { isDone, isOverdue, type Progress } from './grouping'
 
 type TaskItemProps = {
   task: Task
+  // null for a task without subtasks.
+  progress: Progress | null
   isSelected: boolean
   onToggleDone: (id: string) => void
   onSelect: (id: string) => void
@@ -12,6 +14,7 @@ type TaskItemProps = {
 
 export default function TaskItem({
   task,
+  progress,
   isSelected,
   onToggleDone,
   onSelect,
@@ -69,10 +72,26 @@ export default function TaskItem({
         {task.title}
       </button>
 
-      {task.estimateMinutes !== null && (
-        <span className="flex-none font-mono text-[10px] text-mute-2">
-          {formatDuration(task.estimateMinutes)}
+      {progress !== null && (
+        <span
+          aria-label={`${progress.done} of ${progress.total} subtasks done`}
+          className="flex-none font-mono text-[10px] text-mute-2"
+        >
+          {progress.done}/{progress.total}
         </span>
+      )}
+
+      {/* With estimated subtasks, their total is the task's estimate. */}
+      {progress !== null && progress.estimate !== null ? (
+        <span className="flex-none font-mono text-[10px] text-mute-2">
+          {formatDuration(progress.estimate.total)}
+        </span>
+      ) : (
+        task.estimateMinutes !== null && (
+          <span className="flex-none font-mono text-[10px] text-mute-2">
+            {formatDuration(task.estimateMinutes)}
+          </span>
+        )
       )}
 
       {task.dueAt !== null && !isDone(task) && (
