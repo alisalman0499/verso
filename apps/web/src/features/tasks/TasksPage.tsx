@@ -1,20 +1,21 @@
 import { useEffect, useState } from 'react'
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import CalendarView from './calendar/CalendarView'
 import DayRail from './DayRail'
 import {
   isDone,
   LISTS,
+  pathForView,
   progressByParent,
   projectIdForView,
-  searchParamsForView,
   subtasksOf,
   tasksForList,
   tasksForView,
   topLevelTasks,
-  viewFromSearchParams,
-  type View,
+  viewFromLegacySearch,
+  viewFromRouteParams,
 } from './grouping'
+import Overview from './Overview'
 import Sidebar from './Sidebar'
 import TaskDetail from './TaskDetail'
 import TaskList from './TaskList'
@@ -23,10 +24,10 @@ import { useNow } from './useNow'
 import { useTasks } from './useTasks'
 
 // The signed-in app's main screen: sidebar, main column, side panel. The
-// main column is either the lists (`/`) or the calendar (`/calendar`); the
-// sidebar and the panel stay the same, so picking a task works the same way
-// in both.
-type Section = 'lists' | 'calendar'
+// main column is the Overview (`/`), a list or project (`/lists/:listKey`,
+// `/projects/:projectId`) or the calendar (`/calendar`); the sidebar and the
+// panel stay the same, so picking a task works the same way in all of them.
+type Section = 'overview' | 'lists' | 'calendar'
 
 // Tailwind's `lg`, where the side panel appears.
 const WIDE_SCREEN = '(min-width: 64rem)'
@@ -35,20 +36,15 @@ export default function TasksPage({ section }: { section: Section }) {
   const { tasks, isLoading, isError, retry, addTask, toggleDone, deleteTask } =
     useTasks()
   const { projects, addProject } = useProjects()
-  // The open list comes from the URL (see viewFromSearchParams), not from
-  // component state: leaving for a task's page and coming back, reloading,
-  // or bookmarking all keep your place.
-  const [searchParams, setSearchParams] = useSearchParams()
+  // The open list comes from the URL (see pathForView), not from component
+  // state: leaving for a task's page and coming back, reloading, or
+  // bookmarking all keep your place.
+  const params = useParams()
   const location = useLocation()
   const navigate = useNavigate()
-  // Where a task's page should send you back to: this list, as it is now.
+  // Where a task's page should send you back to: this page, as it is now.
   const returnTo = location.pathname + location.search
-  const view = viewFromSearchParams(searchParams)
-  function setView(next: View) {
-    // From the calendar, this is a trip back to the lists as well.
-    if (section === 'lists') setSearchParams(searchParamsForView(next))
-    else navigate({ pathname: '/', search: `?${searchParamsForView(next)}` })
-  }
+  const view = viewFromRouteParams(params)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   // The one task whose subtasks are folded open in the list, if any.
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null)
@@ -136,21 +132,28 @@ export default function TasksPage({ section }: { section: Section }) {
     setSelectedTaskId(null)
   }
 
+  // An old `/?list=upcoming` link: send it on to where that list lives now.
+  // Down here rather than at the top because hooks must run on every render.
+  const legacyView =
+    section === 'overview'
+      ? viewFromLegacySearch(new URLSearchParams(location.search))
+      : null
+  if (legacyView !== null) {
+    return <Navigate to={pathForView(legacyView)} replace />
+  }
+
   return (
     <div className="grid h-dvh grid-cols-1 bg-ink text-bone md:grid-cols-[254px_minmax(0,1fr)] lg:grid-cols-[254px_minmax(0,1fr)_348px]">
       <Sidebar
         tasks={topLevel}
         projects={projects}
-        activeView={section === 'lists' ? view : null}
-        onSelectView={setView}
-        isCalendarActive={section === 'calendar'}
-        onOpenCalendar={() => navigate('/calendar')}
         onAddProject={addProject}
         now={now}
       />
 
       <main className="flex min-h-0 min-w-0 flex-col">
-        {section === 'calendar' ? (
+        {section === 'overview' && <Overview now={now} />}
+        {section === 'calendar' && (
           <CalendarView
             tasks={topLevel}
             progress={progress}
@@ -161,7 +164,8 @@ export default function TasksPage({ section }: { section: Section }) {
             }
             now={now}
           />
-        ) : (
+        )}
+        {section === 'lists' && (
           <>
             <div className="flex-none px-5 pt-8 lg:px-11">
               <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">

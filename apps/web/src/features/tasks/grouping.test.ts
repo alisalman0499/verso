@@ -7,14 +7,15 @@ import {
   isInList,
   isOverdue,
   openTaskCount,
+  pathForView,
   progressByParent,
   projectIdForView,
-  searchParamsForView,
   subtasksOf,
   tasksForList,
   tasksForView,
   topLevelTasks,
-  viewFromSearchParams,
+  viewFromLegacySearch,
+  viewFromRouteParams,
   type View,
 } from './grouping'
 import type { Task } from '../../types/task'
@@ -357,27 +358,32 @@ describe('subtasks', () => {
 })
 
 describe('views in the URL', () => {
-  const read = (query: string) =>
-    viewFromSearchParams(new URLSearchParams(query))
-
-  it('defaults to Today', () => {
-    expect(read('')).toEqual({ type: 'list', key: 'today' })
-  })
-
-  it('reads a fixed list and a project', () => {
-    expect(read('list=upcoming')).toEqual({ type: 'list', key: 'upcoming' })
-    expect(read('project=abc')).toEqual({ type: 'project', projectId: 'abc' })
-  })
-
-  it('falls back to Today for anything it does not recognise', () => {
-    expect(read('list=someday')).toEqual({ type: 'list', key: 'today' })
-    expect(read('project=')).toEqual({ type: 'list', key: 'today' })
-  })
-
-  it('writes Today as an empty query string', () => {
-    expect(searchParamsForView({ type: 'list', key: 'today' }).toString()).toBe(
-      '',
+  it('puts lists under /lists and projects under /projects', () => {
+    expect(pathForView({ type: 'list', key: 'upcoming' })).toBe(
+      '/lists/upcoming',
     )
+    expect(pathForView({ type: 'project', projectId: 'abc' })).toBe(
+      '/projects/abc',
+    )
+  })
+
+  it('reads a fixed list and a project from the route', () => {
+    expect(viewFromRouteParams({ listKey: 'done' })).toEqual({
+      type: 'list',
+      key: 'done',
+    })
+    expect(viewFromRouteParams({ projectId: 'abc' })).toEqual({
+      type: 'project',
+      projectId: 'abc',
+    })
+  })
+
+  it('falls back to Today for a list it does not recognise', () => {
+    expect(viewFromRouteParams({ listKey: 'someday' })).toEqual({
+      type: 'list',
+      key: 'today',
+    })
+    expect(viewFromRouteParams({})).toEqual({ type: 'list', key: 'today' })
   })
 
   it('reads back every view it writes', () => {
@@ -389,7 +395,26 @@ describe('views in the URL', () => {
       { type: 'project', projectId: 'abc' },
     ]
     for (const view of views) {
-      expect(viewFromSearchParams(searchParamsForView(view))).toEqual(view)
+      const [, kind, param] = pathForView(view).split('/')
+      const params =
+        kind === 'projects' ? { projectId: param } : { listKey: param }
+      expect(viewFromRouteParams(params)).toEqual(view)
     }
+  })
+})
+
+describe('old query-string links', () => {
+  const read = (query: string) =>
+    viewFromLegacySearch(new URLSearchParams(query))
+
+  it('reads the views old links pointed at', () => {
+    expect(read('list=upcoming')).toEqual({ type: 'list', key: 'upcoming' })
+    expect(read('project=abc')).toEqual({ type: 'project', projectId: 'abc' })
+  })
+
+  it('finds nothing when the query names no view', () => {
+    expect(read('')).toBeNull()
+    expect(read('list=someday')).toBeNull()
+    expect(read('project=')).toBeNull()
   })
 })
