@@ -1,13 +1,10 @@
 # Verso
 
-A task manager built around a single day rather than an infinite backlog. Tasks
-carry a scheduled time, and the day is drawn as a rail across the top of the
-screen so you can see where the work actually sits before you commit to more of
-it.
+A planning and focus tool for students with ADHD. It works for any kind of
+task, with a student layer on top — courses, assignments, deadlines — and AI
+that helps break big tasks down and plan the day.
 
-Built with React, TypeScript and Tailwind. No backend — everything persists to
-`localStorage` behind a boundary designed so a real one can be dropped in later
-without touching a component.
+Verso is a planning tool. It is not a medical or treatment tool.
 
 <!--
   SCREENSHOT: add one here before sharing this repo.
@@ -15,105 +12,97 @@ without touching a component.
   across the day, and one selected so the detail panel is populated.
 -->
 
+## Status
+
+Step 1 of 5 is done: accounts and core tasks. See [TODO.md](TODO.md) for the
+roadmap.
+
+- **Accounts** — sign-up with email verification, sign-in, sign-out, password
+  reset.
+- **Tasks** — create, edit, complete, delete; a **Deadline** separate from
+  when you'll work on it (**Do on**), an estimate, notes. Past-deadline
+  tasks read "overdue".
+- **Projects** — create, file tasks under them, filter by them.
+- **Four lists** — Today, Upcoming, Completed, All tasks — and a **day rail**
+  showing where the day's work sits, with a now-line that moves.
+- **Keyboard** — `N` opens the composer, `Enter` commits, `Escape` cancels.
+
 ## Running it
+
+Needs Node 22+ and Docker.
 
 ```bash
 npm install
-npm run dev          # dev server on http://localhost:5173
+docker compose up -d                           # Postgres + Mailpit
+cp apps/api/.env.example apps/api/.env         # then set BETTER_AUTH_SECRET:
+                                               #   openssl rand -base64 32
+npm run db:migrate                             # create the tables
+
+npm run dev:api                                # API on :3000
+npm run dev:web                                # in a second terminal: app on :5173
 ```
 
-| Command                | What it does                          |
-| ---------------------- | ------------------------------------- |
-| `npm run dev`          | Vite dev server with hot reload       |
-| `npm run build`        | Typechecks with `tsc -b`, then builds |
-| `npm run lint`         | ESLint                                |
-| `npm test`             | Vitest, single run                    |
-| `npm run test:watch`   | Vitest in watch mode                  |
-| `npm run format`       | Prettier — writes fixes               |
-| `npm run format:check` | Prettier — reports without writing    |
+Open http://localhost:5173 and sign up. The verification email lands in
+**Mailpit** at http://localhost:8025 — nothing is sent for real in development.
 
-## What it does
+| Command                | What it does                                           |
+| ---------------------- | ------------------------------------------------------ |
+| `npm run dev:web`      | Vite dev server with hot reload; proxies `/api`        |
+| `npm run dev:api`      | API with reload on save                                |
+| `npm run build`        | Typechecks every workspace, builds the web app         |
+| `npm run lint`         | ESLint, every workspace                                |
+| `npm test`             | Every test suite (the API's needs `docker compose up`) |
+| `npm run format`       | Prettier — writes fixes                                |
+| `npm run format:check` | Prettier — reports without writing                     |
+| `npm run db:migrate`   | Applies pending migrations to the dev database         |
 
-- **Four lists** — Today, Upcoming, Completed, All tasks — with live counts.
-- **Scheduling.** Tasks default to today; the date is set at creation and
-  editable afterwards.
-- **A day rail** showing every scheduled task and a now-line that advances on a
-  timer. The window is 06:00–22:00 by default and widens to whole hours when a
-  task falls outside it, so nothing is ever positioned off the end.
-- **Grouping that follows the view.** Today splits into Morning / Afternoon /
-  Evening / No time set; Upcoming groups by day.
-- **In-place editing** of title, notes, estimate and schedule.
-- **Keyboard**: `N` opens the composer, `Enter` commits, `Escape` cancels.
+After changing `apps/api/src/db/schema.ts`, generate a migration with
+`npm run db:generate --workspace @verso/api`, read the SQL it wrote to
+`apps/api/drizzle/`, and commit it.
 
-## Decisions worth knowing about
+### If the API tests can't find `verso_test`
 
-The reasoning behind these is in [ARCHITECTURE.md](ARCHITECTURE.md). Briefly:
+`docker/postgres/init.sql` creates the test database, but Postgres only runs it
+when its data volume is empty. If the volume existed before that file did,
+create the database by hand:
 
-- **One module touches `localStorage`.** `src/lib/storage.ts` is the only file
-  that reads or writes it. That boundary is the whole reason swapping in a real
-  backend is a contained change rather than a rewrite.
-- **Every task carries a `userId` from day one**, even though there is no auth
-  yet and it is always the same placeholder constant. Adding accounts later
-  should not require a data migration.
-- **The lists are deliberately not mutually exclusive.** Completing a task due
-  today leaves it in Today, struck through. Checking something off should not
-  make it vanish from the list you are looking at.
-- **`src/lib/` contains no React** — no hooks, no JSX. Neither does the
-  list-membership logic in `features/tasks/grouping.ts`. Keeping them pure is
-  what makes them testable with no DOM and no setup, and all 25 tests are
-  against those two modules.
-- **Constraints with documented exceptions.** No `any`, and no `as` casts —
-  except one, at the JSON parse boundary, with a comment explaining why. No
-  inline styles — except in the day rail, which positions marks at percentages
-  computed from task data, which Tailwind cannot express.
+```bash
+docker compose exec postgres psql -U verso -c 'CREATE DATABASE verso_test'
+```
+
+Or start over with `docker compose down -v` — which also deletes your
+development data.
 
 ## Layout
 
 ```
-src/
-  app/          shell and router — every route is declared here, and only here
-  components/   shared UI, no domain knowledge
-  features/
-    tasks/      the tasks domain: page, list, row, detail panel, day rail,
-                the useTasks hook, and list-membership logic
-  lib/          pure functions — storage boundary, time formatting. No React.
-  types/        the Task type
-  styles/       Tailwind entry point and the design tokens
+apps/
+  web/          React app — features/, app/ (router, guard), lib/ (no React)
+  api/          Hono API — routes/ → services/ → db/, auth/, email/
+packages/
+  shared/       Zod schemas: the one definition of Task and Project
+docker-compose.yml   Postgres + Mailpit for development
 ```
 
-Features never import from other features. Anything two of them need moves down
-into `components/` or `lib/`.
+## Decisions worth knowing about
 
-## Testing
+The reasoning is in [ARCHITECTURE.md](ARCHITECTURE.md). Briefly:
 
-25 tests across two files, run with `npm test`:
-
-- `src/lib/time.test.ts` — duration and time formatting, and the round trip
-  between ISO strings and the `datetime-local` input format.
-- `src/features/tasks/grouping.test.ts` — list membership, the today/upcoming
-  boundary at midnight, and the day-part grouping.
-
-These two modules are tested because they are pure and because every bug so far
-has been in one of them. Fixtures are built from local date components
-(`new Date(2026, 8, 3, 14, 30)`) rather than UTC strings, since the code reads
-local-time getters throughout — see the timezone note in
-[ARCHITECTURE.md](ARCHITECTURE.md#time-is-local).
-
-## Status
-
-Working and usable. Not finished:
-
-- **Projects** — `Task.projectId` exists and is always `null`. The entity is not
-  built yet; doing so requires lifting task state into a context first.
-- **Responsive layout** — the three-column grid is desktop-only below ~900px.
-- **A command palette** and **accounts** are designed for but not built.
-
-The queue, with the reasoning and the open decisions, is in
-[TODO.md](TODO.md).
+- **Every AI call will go through the API.** The key never reaches the browser,
+  and usage is limitable per user.
+- **One schema, both sides.** The API validates requests with the shared Zod
+  schemas; the web app parses responses with them.
+- **Ownership is enforced twice** — by every service query, and by composite
+  foreign keys that make Postgres refuse to link your task to someone else's
+  project.
+- **Services, not routes, hold the rules**, so the AI's tools (Step 5) can call
+  the same functions the UI does.
+- **Cookie sessions on a single origin** — no tokens in localStorage, no CORS.
+- **Deadline and plan are separate fields** (`dueAt`, `scheduledAt`), because
+  the gap between them is what planning is.
 
 ## Stack
 
-React 19 · TypeScript 6 · Vite 8 · Tailwind CSS 4 · React Router 7 · Vitest 4
-
-Tailwind v4 is configured entirely in CSS — the design tokens live in an
-`@theme` block in `src/styles/index.css` and there is no `tailwind.config.js`.
+React 19 · TypeScript 6 · Vite 8 · Tailwind CSS 4 · React Router 7 · TanStack
+Query 5 · Hono 4 · Better Auth 1.7 · Drizzle ORM · PostgreSQL 17 · Zod 4 ·
+Vitest 4

@@ -1,0 +1,34 @@
+# Development services only. The API and web app run natively (`npm run
+# dev:api`, `npm run dev:web`) so hot reload stays fast.
+#
+# Ports are bound to 127.0.0.1: these use throwaway credentials and should be
+# reachable from this machine only, not from the rest of the network.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: verso
+      POSTGRES_PASSWORD: verso
+      POSTGRES_DB: verso
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Runs once, on first start with an empty volume: creates verso_test.
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U verso']
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  # Catches every email the API sends in development. Web inbox on :8025.
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - '127.0.0.1:1025:1025' # SMTP
+      - '127.0.0.1:8025:8025' # web inbox
+
+volumes:
+  pgdata:

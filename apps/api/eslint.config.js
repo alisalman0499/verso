@@ -1,0 +1,19 @@
+import js from '@eslint/js'
+import eslintConfigPrettier from 'eslint-config-prettier'
+import globals from 'globals'
+import tseslint from 'typescript-eslint'
+
+export default tseslint.config(
+  { ignores: ['dist'] },
+  {
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    files: ['**/*.{ts,js}'],
+    languageOptions: {
+      ecmaVersion: 2023,
+      globals: globals.node,
+    },
+  },
+  // Must stay last: turns off any ESLint stylistic rules that would
+  // otherwise disagree with Prettier's formatting.
+  eslintConfigPrettier,
+)
