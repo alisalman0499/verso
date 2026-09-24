@@ -5,6 +5,17 @@ merged pull request, newest first. For the exact code changes see the git
 history; for the reasoning behind technical decisions see
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
+## 2026-09-24 · Easier estimates
+
+- **Estimates are shown as hours and minutes**: `1h 30m` instead of `1.5h`.
+  _Why:_ "1.5h" makes you do arithmetic to know it means an hour and a half.
+- **Type an estimate the way you'd say it.** `90`, `1h 30m`, `1.5h` and `1,5h`
+  all work; a bare number means minutes. Anything unreadable, or more than a
+  week, puts the previous value back.
+- **Quick picks** (15m · 30m · 1h · 2h) set the estimate in one tap, and the
+  fiddly up/down arrows are gone. _Why:_ picking is less friction than typing,
+  and the arrows crowded the number.
+
 ## 2026-09-24 · Changelog and work queue
 
 - **Added** this changelog, so product decisions have a readable history

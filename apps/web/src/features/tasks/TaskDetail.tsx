@@ -1,5 +1,6 @@
 import { useState, type FocusEvent } from 'react'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '../../lib/time'
+import EstimateField from './EstimateField'
 import { classify, isDone, LISTS } from './grouping'
 import type { UpdateTaskInput } from '../../types/task'
 import type { Project } from '../../types/project'
@@ -53,10 +54,11 @@ export default function TaskDetail({
   const listLabel =
     LISTS.find((list) => list.key === classify(selected, now))?.label ?? ''
 
-  // The three fields below are uncontrolled: the browser owns what you type,
-  // and we only read it back on blur. `key={selected.id}` on the wrapper is what
+  // Title and notes are uncontrolled: the browser owns what you type, and we
+  // only read it back on blur. `key={selected.id}` on the wrapper is what
   // makes that safe — switching tasks remounts the fields, so a half-typed
-  // title can never leak onto the task you clicked next.
+  // title can never leak onto the task you clicked next. EstimateField keeps
+  // its own draft in state, and the same remount resets it.
 
   function handleTitleBlur(event: FocusEvent<HTMLTextAreaElement>) {
     const title = event.target.value.trim()
@@ -72,26 +74,6 @@ export default function TaskDetail({
   function handleNotesBlur(event: FocusEvent<HTMLTextAreaElement>) {
     const notes = event.target.value
     if (notes !== selected.notes) onUpdateTask(selected.id, { notes })
-  }
-
-  function handleEstimateBlur(event: FocusEvent<HTMLInputElement>) {
-    const raw = event.target.value.trim()
-    if (raw === '') {
-      if (selected.estimateMinutes !== null)
-        onUpdateTask(selected.id, { estimateMinutes: null })
-      return
-    }
-    const minutes = Number(raw)
-    if (!Number.isFinite(minutes) || minutes < 0) {
-      event.target.value =
-        selected.estimateMinutes === null
-          ? ''
-          : String(selected.estimateMinutes)
-      return
-    }
-    const rounded = Math.round(minutes)
-    if (rounded !== selected.estimateMinutes)
-      onUpdateTask(selected.id, { estimateMinutes: rounded })
   }
 
   return (
@@ -186,17 +168,13 @@ export default function TaskDetail({
             <dt className="font-mono text-[10px] tracking-[0.14em] text-mute-2 uppercase">
               Estimate
             </dt>
-            <dd className="flex items-center justify-end gap-1.5 text-right text-sm text-bone">
-              <input
-                type="number"
-                min="0"
-                step="5"
-                defaultValue={selected.estimateMinutes ?? ''}
-                placeholder="—"
-                onBlur={handleEstimateBlur}
-                className="w-16 bg-transparent text-right text-sm text-bone placeholder-mute-2 outline-none [color-scheme:dark]"
+            <dd>
+              <EstimateField
+                minutes={selected.estimateMinutes}
+                onChange={(estimateMinutes) =>
+                  onUpdateTask(selected.id, { estimateMinutes })
+                }
               />
-              <span className="font-mono text-[10px] text-mute-2">min</span>
             </dd>
           </div>
           <div className="flex justify-between gap-4 border-b border-hairline py-3">

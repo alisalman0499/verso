@@ -7,10 +7,46 @@ export function formatTime(iso: string): string {
   return `${hours}:${minutes}`
 }
 
+// "45m", "2h", "1h 30m". Hours and minutes rather than decimal hours: "1.5h"
+// makes you do arithmetic to know it means an hour and a half.
 export function formatDuration(minutes: number): string {
   if (minutes < 60) return `${minutes}m`
-  const hours = minutes / 60
-  return Number.isInteger(hours) ? `${hours}h` : `${hours.toFixed(1)}h`
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`
+}
+
+// The units people type, as regex fragments. `?:` makes a group
+// non-capturing, so only the numbers end up in the match results.
+const NUMBER = String.raw`(\d+(?:\.\d+)?)`
+const MINUTE_UNIT = String.raw`(?:m|min|mins|minutes?)`
+const HOUR_UNIT = String.raw`(?:h|hr|hrs|hours?)`
+
+const MINUTES_ONLY = new RegExp(String.raw`^${NUMBER}\s*${MINUTE_UNIT}?$`)
+const HOURS_ONLY = new RegExp(String.raw`^${NUMBER}\s*${HOUR_UNIT}$`)
+const HOURS_AND_MINUTES = new RegExp(
+  String.raw`^(\d+)\s*${HOUR_UNIT}\s*(\d+)\s*${MINUTE_UNIT}?$`,
+)
+
+// Reads a duration the way people type one and returns whole minutes, or
+// null when it can't make sense of the input. Accepts:
+//   "90", "90m", "90 min"      a bare number means minutes
+//   "2h", "1.5h", "1,5 h"      hours, with either decimal separator
+//   "1h 30m", "1h30", "1 h 30 min"
+// Empty input is the caller's to handle: it usually means "clear".
+export function parseDuration(input: string): number | null {
+  const text = input.trim().toLowerCase().replace(',', '.')
+
+  const minutes = text.match(MINUTES_ONLY)
+  if (minutes !== null) return Math.round(Number(minutes[1]))
+
+  const hours = text.match(HOURS_ONLY)
+  if (hours !== null) return Math.round(Number(hours[1]) * 60)
+
+  const both = text.match(HOURS_AND_MINUTES)
+  if (both !== null) return Number(both[1]) * 60 + Number(both[2])
+
+  return null
 }
 
 const dayMonthFormatter = new Intl.DateTimeFormat('en-GB', {
