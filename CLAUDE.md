@@ -120,3 +120,8 @@ approved by the owner. Never redesign a component as a side effect of other work
 - Before every commit: `npm run build`, `npm run lint`, `npm run format:check`,
   `npm test` (root, all workspaces) must pass.
 - Small commits, present tense, describing the change (`Add task editing`).
+- **One branch and one PR per feature**, merged into `main` with a merge commit (not
+  squashed) so each commit stays visible.
+- **Every PR adds an entry to `CHANGELOG.md`**: what changed for the user, and why.
+  Plain language, newest first.
+- Keep `TODO.md` current: tick off finished items, add agreed new ones in order.
