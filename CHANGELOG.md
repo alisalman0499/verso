@@ -5,6 +5,20 @@ merged pull request, newest first. For the exact code changes see the git
 history; for the reasoning behind technical decisions see
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
+## 2026-09-24 · Edit on the task page, glance in the panel
+
+- **The side panel is now read-only.** It shows the task at a glance — dates
+  written out in full, estimate and time left, project, subtasks and notes —
+  with **Mark done** and **Go to task** at the bottom and **Delete** in a ⋯
+  menu at the top. _Why:_ editing happens in one place, the task page, so
+  there's one place to learn and nothing to change by accident while
+  glancing.
+- **"Go to task" on the open row.** Clicking a task shows a "Go to task"
+  button right on its row, beside its numbers. It replaces the phone-only `›`,
+  so phones and laptops work the same way. _Why:_ it's where you're already
+  looking after clicking a task.
+- Dates more than a year away now show their year in the panel.
+
 ## 2026-09-24 · A page for every task
 
 - **Every task has its own page**, with everything the side panel has, more

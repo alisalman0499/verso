@@ -1,4 +1,4 @@
-import { useState, type FocusEvent, type ReactNode } from 'react'
+import { useState, type FocusEvent } from 'react'
 import {
   formatDuration,
   fromDatetimeLocalValue,
@@ -24,14 +24,11 @@ type TaskEditorProps = {
   ) => void
   onDeleteSubtask: (id: string) => void
   now: Date
-  // Shown at the top right, beside Open / Completed: the side panel puts an
-  // "Open page" link here.
-  headerAction?: ReactNode
 }
 
-// Everything you can see and change about one task. Used by the side panel
-// (TaskDetail) and the task's own page (TaskPage), so there is one editor to
-// maintain, not two.
+// Everything you can change about one task, on the task's own page
+// (TaskPage). The side panel only shows a summary (TaskSummary): editing
+// lives in one place.
 //
 // Callers must render it with `key={task.id}`. Switching tasks then builds a
 // fresh editor, which resets everything held locally — the uncontrolled
@@ -46,7 +43,6 @@ export default function TaskEditor({
   onAddSubtask,
   onDeleteSubtask,
   now,
-  headerAction,
 }: TaskEditorProps) {
   // Delete takes two clicks. Because of the key, this starts false for
   // every task, so an armed button can't carry over to the next one.
@@ -83,11 +79,8 @@ export default function TaskEditor({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex-1 overflow-y-auto px-7 py-8">
-        <div className="flex items-center justify-between gap-4">
-          <div className="font-mono text-[10px] tracking-[0.14em] text-mute uppercase">
-            {isDone(task) ? 'Completed' : 'Open'}
-          </div>
-          {headerAction}
+        <div className="font-mono text-[10px] tracking-[0.14em] text-mute uppercase">
+          {isDone(task) ? 'Completed' : 'Open'}
         </div>
         <textarea
           defaultValue={task.title}

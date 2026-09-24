@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   formatDuration,
+  formatFullDateTime,
   formatWhen,
   fromDatetimeLocalValue,
   isSameDay,
@@ -170,5 +171,19 @@ describe('splitTrailingDuration', () => {
       title: 'Outline',
       minutes: 20,
     })
+  })
+})
+
+describe('formatFullDateTime', () => {
+  const now = new Date(2026, 8, 3, 9, 0)
+
+  it('writes weekday, day, month and time', () => {
+    const iso = new Date(2026, 9, 2, 23, 59).toISOString()
+    expect(formatFullDateTime(iso, now)).toBe('Fri 2 Oct, 23:59')
+  })
+
+  it('adds the year when it is not the current one', () => {
+    const iso = new Date(2027, 0, 15, 9, 0).toISOString()
+    expect(formatFullDateTime(iso, now)).toBe('Fri 15 Jan 2027, 09:00')
   })
 })

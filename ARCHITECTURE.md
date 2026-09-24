@@ -213,9 +213,16 @@ copy.
 ### Pages and the URL
 
 Two routes behind the sign-in guard: `/` (the lists) and `/tasks/:taskId`
-(one task on its own page). Both use the same `TaskEditor`; the side panel and
-the page are thin wrappers around it, and render it with `key={task.id}` so a
-different task always gets a fresh editor.
+(one task on its own page).
+
+- **Editing happens in one place: the task page** (`TaskEditor`). The side
+  panel beside the list is a read-only `TaskSummary` with only Mark done, Go
+  to task, and Delete (in a ⋯ menu). The list itself still lets you tick tasks
+  and subtasks. One place to change things means one place to learn, and
+  nothing in the panel to nudge by accident.
+- Both render their component with `key={task.id}`, so a different task
+  always gets a fresh one — resetting half-typed text and a half-armed delete
+  without any effect.
 
 - **The open list lives in the URL** (`?list=upcoming`, `?project=<id>`,
   nothing for Today), read and written by `viewFromSearchParams` /
