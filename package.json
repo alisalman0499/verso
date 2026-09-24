@@ -7,7 +7,8 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace @verso/web",
+    "dev:api": "npm run dev --workspace @verso/api",
+    "dev:web": "npm run dev --workspace @verso/web",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
