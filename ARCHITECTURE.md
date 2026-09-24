@@ -212,8 +212,10 @@ copy.
 
 ### Pages and the URL
 
-Two routes behind the sign-in guard: `/` (the lists) and `/tasks/:taskId`
-(one task on its own page).
+Three routes behind the sign-in guard: `/` (the lists), `/calendar`, and
+`/tasks/:taskId` (one task on its own page). The first two are the same
+`TasksPage` with a different `section`: the sidebar and side panel stay, and
+only the main column changes, so picking a task works the same in both.
 
 - **Editing happens in one place: the task page** (`TaskEditor`). The side
   panel beside the list is a read-only `TaskSummary` with only Mark done, Go
@@ -229,6 +231,9 @@ Two routes behind the sign-in guard: `/` (the lists) and `/tasks/:taskId`
   `searchParamsForView` in `grouping.ts`. Component state would reset every
   time you left the page; the URL survives a trip to a task and back, a
   reload, and a bookmark.
+- **The calendar keeps its place the same way** (`?mode=month`,
+  `?date=2026-10-05`, nothing for this week), via
+  `calendarFromSearchParams` / `searchParamsForCalendar`.
 - **Back links carry where you came from** as router state
   (`{ from: '/?list=upcoming' }`). That state is untyped and could be crafted,
   so `lib/returnPath.ts` parses it and only accepts paths inside the app —
@@ -286,14 +291,41 @@ timezone. The consequences:
   until Step 4, when "today's plan" is computed server-side and the user gets a
   `timezone` column.
 
-## The day rail, and the one inline-style exception
+## The calendar
+
+`features/tasks/calendar/`. No calendar library: they're large, bring their
+own styling that fights the tokens, and the grid is a few hundred lines. The
+parts that are easy to get wrong are pure and tested:
+
+- `lib/calendarDates.ts` — week starts (Monday), month grids, stepping by
+  calendar days with `setDate` rather than adding 24 hours (which lands on
+  the wrong hour on the two days a year the clocks change).
+- `calendarLayout.ts` — where a task goes. A block's height is its planned
+  length (subtask total, own estimate, or 30 minutes), drawn at least 30
+  minutes tall. Overlapping tasks are split into side-by-side columns: tasks
+  that overlap, directly or through a chain, form a cluster; each takes the
+  leftmost free column; all in a cluster share its column count so they line
+  up.
+
+Deadlines are not blocks: most are at 23:59, and a block there would read as
+work to do at midnight. They get a strip above the days instead.
+
+Clicking a task selects it for the side panel when there is one (`lg` and
+up, checked with `matchMedia` at click time) and otherwise goes to the task
+page. On phones the week and month switch to lists with CSS (`sm:`), so
+nothing needs to re-render on resize.
+
+## The day rail and the calendar: the inline-style exception
 
 `DayRail` positions hour ticks, task marks and the now-line at percentages
 computed from task data at runtime. Tailwind only generates classes for values
 written literally in source, so it can't express `left: 43.75%`. This is the
 one component permitted a `style` prop; everything else in it still comes from
 tokens. The window covers 06:00–22:00 and widens to whole hours when a task or
-the current time falls outside it.
+the current time falls outside it. The calendar grid has the same need (block
+positions and heights, the grid's height) and the same exception. Its window
+widens for tasks but not for the current time: at 01:00, empty night hours
+help nobody.
 
 ## Styling
 
