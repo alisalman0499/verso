@@ -59,3 +59,23 @@ export async function signUpVerified(
   if (cookie === '') throw new Error('Verification did not sign in')
   return cookie
 }
+
+// A request to the API as a signed-in (or, without a cookie, signed-out)
+// browser would make it.
+export function api(
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+  path: string,
+  options: { cookie?: string; body?: unknown } = {},
+) {
+  return app.request(path, {
+    method,
+    headers: {
+      Origin: ORIGIN,
+      ...(options.cookie === undefined ? {} : { Cookie: options.cookie }),
+      ...(options.body === undefined
+        ? {}
+        : { 'Content-Type': 'application/json' }),
+    },
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+  })
+}
