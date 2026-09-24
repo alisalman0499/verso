@@ -85,8 +85,9 @@ export function useTasks() {
     title: string,
     scheduledAt: string,
     projectId: string | null,
+    estimateMinutes: number | null = null,
   ) {
-    createMutation.mutate({ title, scheduledAt, projectId })
+    createMutation.mutate({ title, scheduledAt, projectId, estimateMinutes })
   }
 
   // Subtasks have no Do on time of their own yet, and the server gives them

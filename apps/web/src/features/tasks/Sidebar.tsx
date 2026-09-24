@@ -9,8 +9,11 @@ import { LISTS, openTaskCount, tasksForList, type View } from './grouping'
 type SidebarProps = {
   tasks: Task[]
   projects: Project[]
-  activeView: View
+  // The list or project on screen; null while the calendar is.
+  activeView: View | null
   onSelectView: (view: View) => void
+  isCalendarActive: boolean
+  onOpenCalendar: () => void
   onAddProject: (name: string) => void
   now: Date
 }
@@ -20,6 +23,8 @@ export default function Sidebar({
   projects,
   activeView,
   onSelectView,
+  isCalendarActive,
+  onOpenCalendar,
   onAddProject,
   now,
 }: SidebarProps) {
@@ -54,13 +59,28 @@ export default function Sidebar({
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3">
+        {/* Views of your time rather than lists of tasks, so they sit apart,
+            above the lists. Home joins the calendar here later. */}
+        <button
+          type="button"
+          onClick={onOpenCalendar}
+          aria-current={isCalendarActive ? 'page' : undefined}
+          className={
+            isCalendarActive
+              ? 'mt-4 flex w-full items-center gap-3 rounded-md bg-ink-4 px-3 py-2 text-left text-pure'
+              : 'mt-4 flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-mute hover:bg-ink-3 hover:text-bone'
+          }
+        >
+          <span className="flex-1 text-sm">Calendar</span>
+        </button>
+
         <div className="px-3 pb-2 pt-4 font-mono text-[10px] tracking-[0.16em] text-mute uppercase">
           Lists
         </div>
         {LISTS.map((list) => {
           const count = tasksForList(tasks, list.key, now).length
           const isActive =
-            activeView.type === 'list' && activeView.key === list.key
+            activeView?.type === 'list' && activeView.key === list.key
           return (
             <button
               key={list.key}
@@ -130,7 +150,7 @@ export default function Sidebar({
             {projects.map((project) => {
               const count = openTaskCount(tasks, project.id)
               const isActive =
-                activeView.type === 'project' &&
+                activeView?.type === 'project' &&
                 activeView.projectId === project.id
               return (
                 <button

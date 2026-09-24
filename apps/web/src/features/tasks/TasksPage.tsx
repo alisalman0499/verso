@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useLocation, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import CalendarView from './calendar/CalendarView'
 import DayRail from './DayRail'
 import {
   isDone,
@@ -21,7 +22,16 @@ import { useProjects } from './useProjects'
 import { useNow } from './useNow'
 import { useTasks } from './useTasks'
 
-export default function TasksPage() {
+// The signed-in app's main screen: sidebar, main column, side panel. The
+// main column is either the lists (`/`) or the calendar (`/calendar`); the
+// sidebar and the panel stay the same, so picking a task works the same way
+// in both.
+type Section = 'lists' | 'calendar'
+
+// Tailwind's `lg`, where the side panel appears.
+const WIDE_SCREEN = '(min-width: 64rem)'
+
+export default function TasksPage({ section }: { section: Section }) {
   const { tasks, isLoading, isError, retry, addTask, toggleDone, deleteTask } =
     useTasks()
   const { projects, addProject } = useProjects()
@@ -30,11 +40,14 @@ export default function TasksPage() {
   // or bookmarking all keep your place.
   const [searchParams, setSearchParams] = useSearchParams()
   const location = useLocation()
+  const navigate = useNavigate()
   // Where a task's page should send you back to: this list, as it is now.
   const returnTo = location.pathname + location.search
   const view = viewFromSearchParams(searchParams)
   function setView(next: View) {
-    setSearchParams(searchParamsForView(next))
+    // From the calendar, this is a trip back to the lists as well.
+    if (section === 'lists') setSearchParams(searchParamsForView(next))
+    else navigate({ pathname: '/', search: `?${searchParamsForView(next)}` })
   }
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   // The one task whose subtasks are folded open in the list, if any.
@@ -74,6 +87,8 @@ export default function TasksPage() {
       const isTyping =
         target.tagName === 'INPUT' || target.tagName === 'TEXTAREA'
       if (event.key === 'Escape') setComposerOpen(false)
+      // The calendar has no list composer; you add a task by clicking a slot.
+      if (section !== 'lists') return
       // Ignore Ctrl+N / Cmd+N — that's the browser's "new window".
       const hasModifier = event.ctrlKey || event.metaKey || event.altKey
       if (!isTyping && !hasModifier && event.key.toLowerCase() === 'n') {
@@ -83,7 +98,7 @@ export default function TasksPage() {
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  }, [section])
 
   function handleAddTask(title: string, scheduledAt: string) {
     // TasksPage is what knows which view is open, so the project comes from
@@ -104,6 +119,18 @@ export default function TasksPage() {
     setExpandedTaskId(id)
   }
 
+  // A task picked in the calendar. With room for the side panel, it shows
+  // there, as in the lists. Without it there's nowhere to show it on this
+  // screen, so go straight to the task's page. Read at click time: nothing
+  // needs to re-render when the window is resized.
+  function handleOpenFromCalendar(id: string) {
+    if (window.matchMedia(WIDE_SCREEN).matches) {
+      setSelectedTaskId(id)
+      return
+    }
+    navigate(`/tasks/${id}`, { state: { from: returnTo } })
+  }
+
   function handleDeleteTask(id: string) {
     deleteTask(id)
     setSelectedTaskId(null)
@@ -114,76 +141,93 @@ export default function TasksPage() {
       <Sidebar
         tasks={topLevel}
         projects={projects}
-        activeView={view}
+        activeView={section === 'lists' ? view : null}
         onSelectView={setView}
+        isCalendarActive={section === 'calendar'}
+        onOpenCalendar={() => navigate('/calendar')}
         onAddProject={addProject}
         now={now}
       />
 
       <main className="flex min-h-0 min-w-0 flex-col">
-        <div className="flex-none px-5 pt-8 lg:px-11">
-          <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-            <div>
-              <div className="font-mono text-[10px] tracking-[0.16em] text-mute uppercase">
-                {isTodayView
-                  ? now.toLocaleDateString('en-GB', { weekday: 'long' })
-                  : 'List'}
+        {section === 'calendar' ? (
+          <CalendarView
+            tasks={topLevel}
+            progress={progress}
+            selectedTaskId={selectedTaskId}
+            onOpenTask={handleOpenFromCalendar}
+            onAddTask={(title, scheduledAt, estimateMinutes) =>
+              addTask(title, scheduledAt, null, estimateMinutes)
+            }
+            now={now}
+          />
+        ) : (
+          <>
+            <div className="flex-none px-5 pt-8 lg:px-11">
+              <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+                <div>
+                  <div className="font-mono text-[10px] tracking-[0.16em] text-mute uppercase">
+                    {isTodayView
+                      ? now.toLocaleDateString('en-GB', { weekday: 'long' })
+                      : 'List'}
+                  </div>
+                  <h2 className="mt-1.5 font-serif text-[clamp(34px,4.2vw,52px)] leading-none tracking-tight text-pure">
+                    {isTodayView ? (
+                      <>
+                        {now.getDate()}{' '}
+                        <em className="text-bone">
+                          {now.toLocaleDateString('en-GB', { month: 'long' })}
+                        </em>
+                      </>
+                    ) : (
+                      <em className="text-bone">{listLabel}</em>
+                    )}
+                  </h2>
+                </div>
+                {/* ml-auto rather than relying on the parent's justify-between:
+                  that only spaces items apart when they share a line. Below
+                  ~500px this row wraps and the tally+button become the only
+                  thing on their line — without ml-auto they'd snap to the
+                  left edge instead of staying right-aligned. */}
+                <div className="ml-auto flex items-center gap-3.5 pb-1.5">
+                  <span className="font-mono text-[11px] whitespace-nowrap text-mute">
+                    <b className="font-normal text-pure">{doneToday}</b> of{' '}
+                    {todaysTasks.length} done today
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setComposerOpen(true)}
+                    className="inline-flex items-center gap-2 rounded-full bg-pure px-4 py-2 text-sm font-medium text-ink hover:opacity-90"
+                  >
+                    New task{' '}
+                    <span className="font-mono text-[10px] opacity-50">N</span>
+                  </button>
+                </div>
               </div>
-              <h2 className="mt-1.5 font-serif text-[clamp(34px,4.2vw,52px)] leading-none tracking-tight text-pure">
-                {isTodayView ? (
-                  <>
-                    {now.getDate()}{' '}
-                    <em className="text-bone">
-                      {now.toLocaleDateString('en-GB', { month: 'long' })}
-                    </em>
-                  </>
-                ) : (
-                  <em className="text-bone">{listLabel}</em>
-                )}
-              </h2>
-            </div>
-            {/* ml-auto rather than relying on the parent's justify-between:
-                that only spaces items apart when they share a line. Below
-                ~500px this row wraps and the tally+button become the only
-                thing on their line — without ml-auto they'd snap to the
-                left edge instead of staying right-aligned. */}
-            <div className="ml-auto flex items-center gap-3.5 pb-1.5">
-              <span className="font-mono text-[11px] whitespace-nowrap text-mute">
-                <b className="font-normal text-pure">{doneToday}</b> of{' '}
-                {todaysTasks.length} done today
-              </span>
-              <button
-                type="button"
-                onClick={() => setComposerOpen(true)}
-                className="inline-flex items-center gap-2 rounded-full bg-pure px-4 py-2 text-sm font-medium text-ink hover:opacity-90"
-              >
-                New task{' '}
-                <span className="font-mono text-[10px] opacity-50">N</span>
-              </button>
-            </div>
-          </div>
 
-          <DayRail tasks={topLevel} now={now} />
-        </div>
+              <DayRail tasks={topLevel} now={now} />
+            </div>
 
-        <TaskList
-          view={view}
-          listLabel={listLabel}
-          tasks={visibleTasks}
-          progress={progress}
-          loadState={isLoading ? 'loading' : isError ? 'error' : 'ready'}
-          onRetryLoad={retry}
-          selectedTaskId={selectedTaskId}
-          onSelectTask={handleSelectTask}
-          expandedTaskId={expandedTaskId}
-          expandedSubtasks={expandedSubtasks}
-          returnTo={returnTo}
-          onToggleDone={toggleDone}
-          isComposerOpen={isComposerOpen}
-          onCloseComposer={() => setComposerOpen(false)}
-          onAddTask={handleAddTask}
-          now={now}
-        />
+            <TaskList
+              view={view}
+              listLabel={listLabel}
+              tasks={visibleTasks}
+              progress={progress}
+              loadState={isLoading ? 'loading' : isError ? 'error' : 'ready'}
+              onRetryLoad={retry}
+              selectedTaskId={selectedTaskId}
+              onSelectTask={handleSelectTask}
+              expandedTaskId={expandedTaskId}
+              expandedSubtasks={expandedSubtasks}
+              returnTo={returnTo}
+              onToggleDone={toggleDone}
+              isComposerOpen={isComposerOpen}
+              onCloseComposer={() => setComposerOpen(false)}
+              onAddTask={handleAddTask}
+              now={now}
+            />
+          </>
+        )}
       </main>
 
       <TaskDetail

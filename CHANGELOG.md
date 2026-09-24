@@ -5,6 +5,24 @@ merged pull request, newest first. For the exact code changes see the git
 history; for the reasoning behind technical decisions see
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
+## 2026-09-24 · Calendar
+
+- **A calendar, in week and month.** Open it from **Calendar** at the top of
+  the sidebar. The week shows Monday to Sunday by the hour, each task at its
+  Do on time and as tall as its estimate; deadlines sit in a strip above the
+  days. The month shows a few entries per day and opens the week when you
+  click a day. ‹ › and **Today** move through time (or ← → and T).
+  _Why:_ lists answer "what's next"; a calendar shows how a week fits
+  together, and whether a deadline has any time planned before it.
+- **Plan straight onto it.** Click an empty slot in the week to add a task
+  there. End the title with a length ("Essay draft 1h") and the block is
+  that long.
+- **Tasks show the same way everywhere.** Clicking one in the calendar opens
+  it in the side panel, as in the lists. Done tasks stay visible, dimmed.
+- **On a phone** the week becomes a list of days, and the month shows dots,
+  listing the tasks of the day you tap. There's no link to the calendar on
+  phones yet — that comes with phone navigation (see TODO).
+
 ## 2026-09-24 · Edit on the task page, glance in the panel
 
 - **The side panel is now read-only.** It shows the task at a glance — dates

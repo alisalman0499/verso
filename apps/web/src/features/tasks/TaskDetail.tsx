@@ -23,7 +23,7 @@ export default function TaskDetail({ task, ...summaryProps }: TaskDetailProps) {
         <div className="flex-1 overflow-y-auto px-7 py-16 text-center">
           <p className="mb-1 font-serif text-xl text-bone">No task selected.</p>
           <span className="text-sm text-mute">
-            Pick one from the list to see its detail.
+            Pick a task to see its detail.
           </span>
         </div>
       ) : (

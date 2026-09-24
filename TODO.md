@@ -30,8 +30,9 @@ Out of scope for Step 1: subtask UI, AI, courses, billing, deployment, OAuth.
 Small, and not blocking Step 2. Each needs a decision from the owner first
 where noted.
 
-- **Sign-out on mobile.** It lives in the sidebar, which is hidden below `md`.
-  Needs a decision on mobile navigation (new chrome in the design).
+- **Navigation on phones.** The sidebar is hidden below `md`, so phones can't
+  switch lists or projects, open the calendar, or sign out. Needs a decision
+  on mobile navigation (new chrome in the design).
 - **Rename a project in the UI.** `PATCH /api/projects/:id` exists; the sidebar
   has no control for it yet.
 - **Say why a change reverted.** A failed optimistic update rolls back with no
@@ -41,6 +42,8 @@ where noted.
   include it.)
 - **The day rail's "now" label is clipped on phones** late in the evening: it
   sits right of the now-line and runs off the edge after about 21:00.
+- **Calendar, next steps:** drag a block to move it or change its length;
+  scroll the week to the current time on open.
 - **A root `dev` script** that starts API and web together. Today it's two
   terminals; one command needs a small dependency (e.g. `concurrently`).
 
@@ -63,9 +66,9 @@ item, in this order. Each gets a short plan approved before building.
 - [ ] **Home / Overview** as the main page, above the lists in the sidebar.
       Introduces real routes (`/` = Home, lists get their own URLs). Waiting on
       the owner's details for what it shows.
-- [ ] **Calendar.** Week view (days × hours, tasks at their Do on time,
-      deadlines marked) and month view, switchable. Week first. Scope to be
-      planned in detail before building.
+- [x] **Calendar** at `/calendar`: week (days × hours, blocks sized by
+      estimate, deadlines in a strip, click an empty slot to add) and month,
+      switchable; a list of days on phones.
 
 ## Step 2 — AI task breakdown
 
