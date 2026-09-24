@@ -23,6 +23,8 @@ type TaskListProps = {
   onRetryLoad: () => void
   selectedTaskId: string | null
   onSelectTask: (id: string) => void
+  expandedTaskId: string | null
+  expandedSubtasks: Task[]
   onToggleDone: (id: string) => void
   isComposerOpen: boolean
   onCloseComposer: () => void
@@ -39,6 +41,8 @@ export default function TaskList({
   onRetryLoad,
   selectedTaskId,
   onSelectTask,
+  expandedTaskId,
+  expandedSubtasks,
   onToggleDone,
   isComposerOpen,
   onCloseComposer,
@@ -163,6 +167,8 @@ export default function TaskList({
                   task={task}
                   progress={progress.get(task.id) ?? null}
                   isSelected={task.id === selectedTaskId}
+                  isExpanded={task.id === expandedTaskId}
+                  subtasks={task.id === expandedTaskId ? expandedSubtasks : []}
                   onToggleDone={onToggleDone}
                   onSelect={onSelectTask}
                   now={now}

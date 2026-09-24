@@ -1,3 +1,4 @@
+import Checkbox from '../../components/Checkbox'
 import { formatDuration, formatWhen } from '../../lib/time'
 import type { Task } from '../../types/task'
 import { isDone, isOverdue, type Progress } from './grouping'
@@ -7,6 +8,11 @@ type TaskItemProps = {
   // null for a task without subtasks.
   progress: Progress | null
   isSelected: boolean
+  // Whether its subtasks are folded open under the row. Only meaningful for
+  // a task that has subtasks.
+  isExpanded: boolean
+  // The task's subtasks, in order. Empty unless the row is expanded.
+  subtasks: Task[]
   onToggleDone: (id: string) => void
   onSelect: (id: string) => void
   now: Date
@@ -16,103 +22,148 @@ export default function TaskItem({
   task,
   progress,
   isSelected,
+  isExpanded,
+  subtasks,
   onToggleDone,
   onSelect,
   now,
 }: TaskItemProps) {
+  const hasSubtasks = progress !== null
+  const showSubtasks = hasSubtasks && isExpanded && subtasks.length > 0
+  const subtaskListId = `subtasks-${task.id}`
+
   return (
     <div
       onClick={() => onSelect(task.id)}
       className={
         isSelected
-          ? 'group flex items-center gap-3 rounded-md border border-hairline bg-ink-3 px-4 py-3'
-          : 'group flex items-center gap-3 rounded-md border border-transparent px-4 py-3 hover:bg-ink-2'
+          ? 'group rounded-md border border-hairline bg-ink-3 px-4 py-3'
+          : 'group rounded-md border border-transparent px-4 py-3 hover:bg-ink-2'
       }
     >
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation()
-          onToggleDone(task.id)
-        }}
-        aria-label={isDone(task) ? 'Mark not done' : 'Mark done'}
-        className={
-          isDone(task)
-            ? 'flex h-[17px] w-[17px] flex-none items-center justify-center rounded-[5px] border border-pure bg-pure'
-            : 'flex h-[17px] w-[17px] flex-none items-center justify-center rounded-[5px] border border-pure/16 group-hover:border-pure/36'
-        }
-      >
-        {isDone(task) && (
-          <svg
-            viewBox="0 0 10 10"
-            className="h-[9px] w-[9px] fill-none stroke-ink"
-          >
-            <path
-              d="M1.6 5.2 3.9 7.4 8.4 2.6"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        )}
-      </button>
+      <div className="flex items-center gap-3">
+        <Checkbox
+          checked={isDone(task)}
+          onToggle={() => onToggleDone(task.id)}
+          label={isDone(task) ? 'Mark not done' : 'Mark done'}
+        />
 
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation()
-          onSelect(task.id)
-        }}
-        className={
-          isDone(task)
-            ? 'flex-1 truncate text-left text-mute-2 line-through'
-            : 'flex-1 truncate text-left text-bone'
-        }
-      >
-        {task.title}
-      </button>
-
-      {progress !== null && (
-        <span
-          aria-label={`${progress.done} of ${progress.total} subtasks done`}
-          className="flex-none font-mono text-[10px] text-mute-2"
-        >
-          {progress.done}/{progress.total}
-        </span>
-      )}
-
-      {/* With estimated subtasks, their total is the task's estimate. */}
-      {progress !== null && progress.estimate !== null ? (
-        <span className="flex-none font-mono text-[10px] text-mute-2">
-          {formatDuration(progress.estimate.total)}
-        </span>
-      ) : (
-        task.estimateMinutes !== null && (
-          <span className="flex-none font-mono text-[10px] text-mute-2">
-            {formatDuration(task.estimateMinutes)}
-          </span>
-        )
-      )}
-
-      {task.dueAt !== null && !isDone(task) && (
-        // Overdue reads brighter, not louder: no red, no warning icon. The
-        // point is to be noticed, not to make the list feel like a scolding.
-        <span
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            onSelect(task.id)
+          }}
+          // Tells screen readers this row folds open, and whether it is.
+          aria-expanded={hasSubtasks ? showSubtasks : undefined}
+          aria-controls={showSubtasks ? subtaskListId : undefined}
           className={
-            isOverdue(task, now)
-              ? 'flex-none font-mono text-[10px] whitespace-nowrap text-bone'
-              : 'flex-none font-mono text-[10px] whitespace-nowrap text-mute-2'
+            isDone(task)
+              ? 'flex min-w-0 flex-1 items-center gap-1.5 text-left text-mute-2 line-through'
+              : 'flex min-w-0 flex-1 items-center gap-1.5 text-left text-bone'
           }
         >
-          {isOverdue(task, now)
-            ? 'overdue'
-            : `due ${formatWhen(task.dueAt, now)}`}
-        </span>
-      )}
+          {/* Space is kept on every row, arrow or not, so titles line up. */}
+          <span aria-hidden className="flex w-2.5 flex-none justify-center">
+            {hasSubtasks && (
+              <svg
+                viewBox="0 0 10 10"
+                className={
+                  showSubtasks
+                    ? 'h-2 w-2 rotate-90 fill-mute-2'
+                    : 'h-2 w-2 fill-mute-2'
+                }
+              >
+                <path d="M3 1.5 7.5 5 3 8.5Z" />
+              </svg>
+            )}
+          </span>
+          <span className="truncate">{task.title}</span>
+        </button>
 
-      <span className="min-w-[52px] flex-none text-right font-mono text-[11px] whitespace-nowrap text-mute">
-        {task.scheduledAt !== null ? formatWhen(task.scheduledAt, now) : '—'}
-      </span>
+        {progress !== null && (
+          <span
+            aria-label={`${progress.done} of ${progress.total} subtasks done`}
+            className="flex-none font-mono text-[10px] text-mute-2"
+          >
+            {progress.done}/{progress.total}
+          </span>
+        )}
+
+        {/* With estimated subtasks, their total is the task's estimate. */}
+        {progress !== null && progress.estimate !== null ? (
+          <span className="flex-none font-mono text-[10px] text-mute-2">
+            {formatDuration(progress.estimate.total)}
+          </span>
+        ) : (
+          task.estimateMinutes !== null && (
+            <span className="flex-none font-mono text-[10px] text-mute-2">
+              {formatDuration(task.estimateMinutes)}
+            </span>
+          )
+        )}
+
+        {task.dueAt !== null && !isDone(task) && (
+          // Overdue reads brighter, not louder: no red, no warning icon. The
+          // point is to be noticed, not to make the list feel like a scolding.
+          <span
+            className={
+              isOverdue(task, now)
+                ? 'flex-none font-mono text-[10px] whitespace-nowrap text-bone'
+                : 'flex-none font-mono text-[10px] whitespace-nowrap text-mute-2'
+            }
+          >
+            {isOverdue(task, now)
+              ? 'overdue'
+              : `due ${formatWhen(task.dueAt, now)}`}
+          </span>
+        )}
+
+        <span className="min-w-[52px] flex-none text-right font-mono text-[11px] whitespace-nowrap text-mute">
+          {task.scheduledAt !== null ? formatWhen(task.scheduledAt, now) : '—'}
+        </span>
+      </div>
+
+      {showSubtasks && (
+        // Indented so the checkboxes line up under the task's title: the
+        // row's checkbox (17px) + gap (12px) + arrow slot (10px) + gap (6px).
+        // Clicks inside stop here, so ticking or clicking a step doesn't
+        // also fold the task closed.
+        <ul
+          id={subtaskListId}
+          onClick={(event) => event.stopPropagation()}
+          className="mt-2.5 flex flex-col gap-1.5 pl-[45px]"
+        >
+          {subtasks.map((subtask) => (
+            <li key={subtask.id} className="flex items-center gap-2.5">
+              <Checkbox
+                size="sm"
+                checked={isDone(subtask)}
+                onToggle={() => onToggleDone(subtask.id)}
+                label={
+                  isDone(subtask)
+                    ? `Mark "${subtask.title}" not done`
+                    : `Mark "${subtask.title}" done`
+                }
+              />
+              <span
+                className={
+                  isDone(subtask)
+                    ? 'flex-1 truncate text-sm text-mute-2 line-through'
+                    : 'flex-1 truncate text-sm text-mute'
+                }
+              >
+                {subtask.title}
+              </span>
+              {subtask.estimateMinutes !== null && (
+                <span className="flex-none font-mono text-[10px] text-mute-2">
+                  {formatDuration(subtask.estimateMinutes)}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

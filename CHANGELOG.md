@@ -5,6 +5,16 @@ merged pull request, newest first. For the exact code changes see the git
 history; for the reasoning behind technical decisions see
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
+## 2026-09-24 · Subtasks in the list
+
+- **Clicking a task folds its subtasks open** right under it in the list, as
+  well as opening it in the side panel. Click it again to fold them away; only
+  one task is open at a time. A small arrow marks tasks that have subtasks.
+  _Why:_ you can see and tick off the steps where you're already looking,
+  without moving over to the panel.
+- **Tick steps off from the list.** Adding, deleting and estimates stay in
+  the panel, so the list stays calm.
+
 ## 2026-09-24 · Subtasks
 
 - **Break a task into steps.** A Subtasks section sits above Notes. Tick steps
