@@ -1,5 +1,6 @@
 import { formatTime, isSameDay, minutesSinceMidnight } from '../../lib/time'
 import type { Task } from '../../types/task'
+import { isDone } from './grouping'
 
 const BASE_START = 6 * 60 // 06:00
 const BASE_END = 22 * 60 // 22:00
@@ -82,7 +83,7 @@ export default function DayRail({ tasks, now }: DayRailProps) {
             left: `${percentAcross(minutesSinceMidnight(task.scheduledAt), start, end)}%`,
           }}
           className={
-            task.done
+            isDone(task)
               ? 'absolute bottom-6 h-2 w-px bg-pure/16'
               : 'absolute bottom-6 h-[30px] w-px bg-pure'
           }

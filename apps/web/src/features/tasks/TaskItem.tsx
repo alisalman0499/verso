@@ -1,5 +1,6 @@
 import { formatDuration, formatWhen } from '../../lib/time'
 import type { Task } from '../../types/task'
+import { isDone } from './grouping'
 
 type TaskItemProps = {
   task: Task
@@ -31,14 +32,14 @@ export default function TaskItem({
           event.stopPropagation()
           onToggleDone(task.id)
         }}
-        aria-label={task.done ? 'Mark not done' : 'Mark done'}
+        aria-label={isDone(task) ? 'Mark not done' : 'Mark done'}
         className={
-          task.done
+          isDone(task)
             ? 'flex h-[17px] w-[17px] flex-none items-center justify-center rounded-[5px] border border-pure bg-pure'
             : 'flex h-[17px] w-[17px] flex-none items-center justify-center rounded-[5px] border border-pure/16 group-hover:border-pure/36'
         }
       >
-        {task.done && (
+        {isDone(task) && (
           <svg
             viewBox="0 0 10 10"
             className="h-[9px] w-[9px] fill-none stroke-ink"
@@ -60,7 +61,7 @@ export default function TaskItem({
           onSelect(task.id)
         }}
         className={
-          task.done
+          isDone(task)
             ? 'flex-1 truncate text-left text-mute-2 line-through'
             : 'flex-1 truncate text-left text-bone'
         }

@@ -17,6 +17,10 @@ import type { Task } from '../../types/task'
 // same thing in any timezone.
 const NOW = new Date(2026, 8, 3, 9, 0)
 
+// When "done" fixtures were completed. The exact time doesn't matter to
+// grouping — only whether completedAt is set.
+const DONE_AT = new Date(2026, 8, 3, 8, 0).toISOString()
+
 function at(
   year: number,
   month: number,
@@ -30,13 +34,18 @@ function at(
 function makeTask(overrides: Partial<Task> = {}): Task {
   return {
     id: 'task-1',
-    userId: 'local-user',
+    userId: 'user-1',
+    projectId: null,
+    parentId: null,
     title: 'A task',
     notes: '',
-    projectId: null,
+    kind: 'task',
+    dueAt: null,
     scheduledAt: null,
     estimateMinutes: null,
-    done: false,
+    completedAt: null,
+    position: 0,
+    source: 'user',
     createdAt: at(2026, 8, 1, 0),
     updatedAt: at(2026, 8, 1, 0),
     ...overrides,
@@ -47,7 +56,10 @@ describe('isInList', () => {
   it('keeps a completed task in Today as well as Completed', () => {
     // The lists are deliberately not mutually exclusive: checking a task
     // off should not make it disappear from the list you are looking at.
-    const task = makeTask({ scheduledAt: at(2026, 8, 3, 14), done: true })
+    const task = makeTask({
+      scheduledAt: at(2026, 8, 3, 14),
+      completedAt: DONE_AT,
+    })
     expect(isInList(task, 'today', NOW)).toBe(true)
     expect(isInList(task, 'done', NOW)).toBe(true)
     expect(isInList(task, 'upcoming', NOW)).toBe(false)
@@ -59,7 +71,7 @@ describe('isInList', () => {
   })
 
   it('drops a completed undated task out of Today', () => {
-    const task = makeTask({ scheduledAt: null, done: true })
+    const task = makeTask({ scheduledAt: null, completedAt: DONE_AT })
     expect(isInList(task, 'today', NOW)).toBe(false)
     expect(isInList(task, 'done', NOW)).toBe(true)
   })
@@ -81,7 +93,7 @@ describe('isInList', () => {
   })
 
   it('shows everything in All tasks', () => {
-    const done = makeTask({ done: true })
+    const done = makeTask({ completedAt: DONE_AT })
     const upcoming = makeTask({ scheduledAt: at(2026, 8, 20, 10) })
     expect(isInList(done, 'all', NOW)).toBe(true)
     expect(isInList(upcoming, 'all', NOW)).toBe(true)
@@ -90,7 +102,10 @@ describe('isInList', () => {
 
 describe('classify', () => {
   it('lets done win over the schedule', () => {
-    const task = makeTask({ scheduledAt: at(2026, 8, 20, 10), done: true })
+    const task = makeTask({
+      scheduledAt: at(2026, 8, 20, 10),
+      completedAt: DONE_AT,
+    })
     expect(classify(task, NOW)).toBe('done')
   })
 
@@ -161,8 +176,8 @@ describe('tasksForView', () => {
 
   it('keeps completed tasks in their project view', () => {
     const tasks = [
-      makeTask({ id: 'done', projectId: 'proj-1', done: true }),
-      makeTask({ id: 'open', projectId: 'proj-1', done: false }),
+      makeTask({ id: 'done', projectId: 'proj-1', completedAt: DONE_AT }),
+      makeTask({ id: 'open', projectId: 'proj-1', completedAt: null }),
     ]
     expect(
       tasksForView(tasks, { type: 'project', projectId: 'proj-1' }, NOW)
@@ -188,10 +203,10 @@ describe('projectIdForView', () => {
 describe('openTaskCount', () => {
   it('counts only open tasks in the project', () => {
     const tasks = [
-      makeTask({ id: 'open', projectId: 'proj-1', done: false }),
-      makeTask({ id: 'done', projectId: 'proj-1', done: true }),
-      makeTask({ id: 'other-project', projectId: 'proj-2', done: false }),
-      makeTask({ id: 'no-project', projectId: null, done: false }),
+      makeTask({ id: 'open', projectId: 'proj-1', completedAt: null }),
+      makeTask({ id: 'done', projectId: 'proj-1', completedAt: DONE_AT }),
+      makeTask({ id: 'other-project', projectId: 'proj-2', completedAt: null }),
+      makeTask({ id: 'no-project', projectId: null, completedAt: null }),
     ]
     expect(openTaskCount(tasks, 'proj-1')).toBe(1)
   })

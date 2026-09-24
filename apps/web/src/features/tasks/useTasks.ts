@@ -1,70 +1,115 @@
-import { useEffect, useState } from 'react'
-import { CURRENT_USER_ID } from '../../lib/currentUser'
-import { getTasks, saveTasks } from '../../lib/storage'
-import type { Task } from '../../types/task'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { api } from '../../lib/api'
+import type { Task, UpdateTaskInput } from '../../types/task'
+import { applyPatch } from './applyPatch'
+import { isDone } from './grouping'
 
-// The shape updateTask accepts: one function for every editable field,
-// instead of a setter per field. `Partial<...>` makes each key optional so
-// a caller passes only what changed; `Omit<...>` drops the four fields
-// nothing may edit — identity and timestamps are ours to manage.
-export type TaskPatch = Partial<
-  Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
->
+// The cache key for the signed-in user's tasks. Also used as the mutation
+// key, so the hook can ask "are any task changes still in flight?".
+const TASKS_KEY = ['tasks']
 
+// Server state lives in TanStack Query's cache, not in this hook. Every
+// component that calls useTasks reads the same cached list, so there are no
+// competing copies to overwrite each other.
 export function useTasks() {
-  const [tasks, setTasks] = useState<Task[]>(() => getTasks())
+  const queryClient = useQueryClient()
+  const query = useQuery({ queryKey: TASKS_KEY, queryFn: api.listTasks })
 
-  // Whatever the tasks look like after a change, persist all of them.
-  // storage.ts stays a dumb "read the list / write the list" boundary —
-  // this is where the actual mutation logic lives.
-  useEffect(() => {
-    saveTasks(tasks)
-  }, [tasks])
+  function setTasks(update: (tasks: Task[]) => Task[]) {
+    queryClient.setQueryData<Task[]>(TASKS_KEY, (previous) =>
+      previous === undefined ? previous : update(previous),
+    )
+  }
+
+  // Shared by the optimistic mutations below. Before the request goes out:
+  // stop any refetch that could overwrite the optimistic change, remember
+  // the current list, then apply the change locally.
+  async function optimistically(update: (tasks: Task[]) => Task[]) {
+    await queryClient.cancelQueries({ queryKey: TASKS_KEY })
+    const previous = queryClient.getQueryData<Task[]>(TASKS_KEY)
+    setTasks(update)
+    return { previous }
+  }
+
+  function rollBack(context: { previous: Task[] | undefined } | undefined) {
+    if (context?.previous !== undefined) {
+      queryClient.setQueryData(TASKS_KEY, context.previous)
+    }
+  }
+
+  // Two quick changes can overlap, and rolling one back restores a snapshot
+  // that predates the other. So once the *last* in-flight change settles,
+  // refetch the real list from the server.
+  function resyncWhenIdle() {
+    if (queryClient.isMutating({ mutationKey: TASKS_KEY }) === 1) {
+      void queryClient.invalidateQueries({ queryKey: TASKS_KEY })
+    }
+  }
+
+  // Not optimistic: the server assigns the id, and a request to localhost or
+  // a nearby region comes back before anyone notices the difference.
+  const createMutation = useMutation({
+    mutationKey: TASKS_KEY,
+    mutationFn: api.createTask,
+    onSuccess: (task) => setTasks((tasks) => [...tasks, task]),
+  })
+
+  const updateMutation = useMutation({
+    mutationKey: TASKS_KEY,
+    mutationFn: ({ id, patch }: { id: string; patch: UpdateTaskInput }) =>
+      api.updateTask(id, patch),
+    onMutate: ({ id, patch }) =>
+      optimistically((tasks) =>
+        tasks.map((task) =>
+          task.id === id ? applyPatch(task, patch, new Date()) : task,
+        ),
+      ),
+    onError: (_error, _variables, context) => rollBack(context),
+    onSettled: resyncWhenIdle,
+  })
+
+  const deleteMutation = useMutation({
+    mutationKey: TASKS_KEY,
+    mutationFn: api.deleteTask,
+    onMutate: (id: string) =>
+      optimistically((tasks) => tasks.filter((task) => task.id !== id)),
+    onError: (_error, _id, context) => rollBack(context),
+    onSettled: resyncWhenIdle,
+  })
 
   function addTask(
     title: string,
     scheduledAt: string,
     projectId: string | null,
   ) {
-    const now = new Date().toISOString()
-    const task: Task = {
-      id: crypto.randomUUID(),
-      userId: CURRENT_USER_ID,
-      title,
-      notes: '',
-      projectId,
-      scheduledAt,
-      estimateMinutes: null,
-      done: false,
-      createdAt: now,
-      updatedAt: now,
-    }
-    setTasks((prev) => [...prev, task])
+    createMutation.mutate({ title, scheduledAt, projectId })
+  }
+
+  function updateTask(id: string, patch: UpdateTaskInput) {
+    updateMutation.mutate({ id, patch })
   }
 
   function toggleDone(id: string) {
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === id
-          ? { ...task, done: !task.done, updatedAt: new Date().toISOString() }
-          : task,
-      ),
-    )
+    // Reads the cache, not the last render, so two quick clicks toggle
+    // twice instead of sending "complete" twice.
+    const task = queryClient
+      .getQueryData<Task[]>(TASKS_KEY)
+      ?.find((candidate) => candidate.id === id)
+    if (task !== undefined) updateTask(id, { completed: !isDone(task) })
   }
 
   function deleteTask(id: string) {
-    setTasks((prev) => prev.filter((task) => task.id !== id))
+    deleteMutation.mutate(id)
   }
 
-  function updateTask(id: string, patch: TaskPatch) {
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === id
-          ? { ...task, ...patch, updatedAt: new Date().toISOString() }
-          : task,
-      ),
-    )
+  return {
+    tasks: query.data ?? [],
+    isLoading: query.isPending,
+    isError: query.isError,
+    retry: () => void query.refetch(),
+    addTask,
+    toggleDone,
+    deleteTask,
+    updateTask,
   }
-
-  return { tasks, addTask, toggleDone, deleteTask, updateTask }
 }

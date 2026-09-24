@@ -1,12 +1,3 @@
-export type Task = {
-  id: string
-  userId: string
-  title: string
-  notes: string
-  projectId: string | null
-  scheduledAt: string | null // ISO 8601
-  estimateMinutes: number | null
-  done: boolean
-  createdAt: string
-  updatedAt: string
-}
+// The Task type is defined once, in the shared package, from the same Zod
+// schema the API validates against.
+export type { Task, TaskKind, UpdateTaskInput } from '@verso/shared'

@@ -14,6 +14,10 @@ type TaskListProps = {
   view: View
   listLabel: string
   tasks: Task[]
+  // The first load hasn't finished, or failed. Either way the list is empty
+  // for a reason other than "you have no tasks", so the empty state is wrong.
+  loadState: 'loading' | 'error' | 'ready'
+  onRetryLoad: () => void
   selectedTaskId: string | null
   onSelectTask: (id: string) => void
   onToggleDone: (id: string) => void
@@ -27,6 +31,8 @@ export default function TaskList({
   view,
   listLabel,
   tasks,
+  loadState,
+  onRetryLoad,
   selectedTaskId,
   onSelectTask,
   onToggleDone,
@@ -111,7 +117,20 @@ export default function TaskList({
         </div>
       )}
 
-      {tasks.length === 0 ? (
+      {loadState === 'loading' ? null : loadState === 'error' ? (
+        <div className="py-16 text-center">
+          <p className="mb-1 font-serif text-xl text-bone">
+            Couldn&rsquo;t load your tasks.
+          </p>
+          <button
+            type="button"
+            onClick={onRetryLoad}
+            className="text-sm text-mute underline-offset-4 hover:text-bone hover:underline"
+          >
+            Try again
+          </button>
+        </div>
+      ) : tasks.length === 0 ? (
         <div className="py-16 text-center">
           <p className="mb-1 font-serif text-xl text-bone">Clear.</p>
           <span className="text-sm text-mute">

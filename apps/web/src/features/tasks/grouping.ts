@@ -3,6 +3,12 @@ import type { Task } from '../../types/task'
 
 // Task-specific logic, so it lives in the feature rather than lib/.
 
+// A task is done once it has a completion time. The API stores when, not
+// just whether; everything here only needs whether.
+export function isDone(task: Task): boolean {
+  return task.completedAt !== null
+}
+
 // 'all' isn't something classify() ever returns — it's not a bucket a task
 // belongs to, it's a view that shows every task regardless of bucket.
 export type ListKey = 'today' | 'upcoming' | 'done' | 'all'
@@ -19,7 +25,7 @@ export const LISTS: { key: ListKey; label: string }[] = [
 // simple label even though a task can appear in more than one list (see
 // isInList below).
 export function classify(task: Task, now: Date): Exclude<ListKey, 'all'> {
-  if (task.done) return 'done'
+  if (isDone(task)) return 'done'
 
   // No date, or scheduled for today or earlier, both surface in Today —
   // every task gets a date by default now, so this is mainly the "date
@@ -40,16 +46,16 @@ function isOnOrBeforeToday(scheduledAt: string, now: Date): boolean {
 // from the view you're looking at) as well as "done".
 export function isInList(task: Task, key: ListKey, now: Date): boolean {
   if (key === 'all') return true
-  if (key === 'done') return task.done
+  if (key === 'done') return isDone(task)
   if (key === 'today') {
     // An undated task only counts as "today" while it's still open —
     // once done, it just lives in Completed/All tasks.
-    if (task.scheduledAt === null) return !task.done
+    if (task.scheduledAt === null) return !isDone(task)
     return isOnOrBeforeToday(task.scheduledAt, now)
   }
   // upcoming
   return (
-    !task.done &&
+    !isDone(task) &&
     task.scheduledAt !== null &&
     !isOnOrBeforeToday(task.scheduledAt, now)
   )
@@ -85,7 +91,7 @@ export function projectIdForView(view: View): string | null {
 // Completed tasks stay assigned to their project; they just don't count
 // here, the same way Today's tally only counts what's still open.
 export function openTaskCount(tasks: Task[], projectId: string): number {
-  return tasks.filter((task) => task.projectId === projectId && !task.done)
+  return tasks.filter((task) => task.projectId === projectId && !isDone(task))
     .length
 }
 

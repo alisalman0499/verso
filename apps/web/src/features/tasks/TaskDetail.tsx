@@ -1,7 +1,7 @@
 import { useState, type FocusEvent } from 'react'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '../../lib/time'
-import { classify, LISTS } from './grouping'
-import type { TaskPatch } from './useTasks'
+import { classify, isDone, LISTS } from './grouping'
+import type { UpdateTaskInput } from '../../types/task'
 import type { Project } from '../../types/project'
 import type { Task } from '../../types/task'
 
@@ -10,7 +10,7 @@ type TaskDetailProps = {
   projects: Project[]
   onToggleDone: (id: string) => void
   onDelete: (id: string) => void
-  onUpdateTask: (id: string, patch: TaskPatch) => void
+  onUpdateTask: (id: string, patch: UpdateTaskInput) => void
   now: Date
 }
 
@@ -98,7 +98,7 @@ export default function TaskDetail({
     <aside className="hidden min-h-0 flex-col border-l border-hairline bg-ink-2 lg:flex">
       <div key={selected.id} className="flex-1 overflow-y-auto px-7 py-8">
         <div className="font-mono text-[10px] tracking-[0.14em] text-mute uppercase">
-          {selected.done ? 'Completed' : 'Open'}
+          {isDone(selected) ? 'Completed' : 'Open'}
         </div>
         <textarea
           defaultValue={selected.title}
@@ -213,7 +213,7 @@ export default function TaskDetail({
           onClick={() => onToggleDone(selected.id)}
           className="flex-1 rounded-full bg-pure px-4 py-2 text-center text-sm font-medium text-ink"
         >
-          {selected.done ? 'Reopen task' : 'Mark done'}
+          {isDone(selected) ? 'Reopen task' : 'Mark done'}
         </button>
         <button
           type="button"

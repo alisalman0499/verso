@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import DayRail from './DayRail'
 import {
+  isDone,
   LISTS,
   projectIdForView,
   tasksForList,
@@ -14,7 +15,16 @@ import { useProjects } from './useProjects'
 import { useTasks } from './useTasks'
 
 export default function TasksPage() {
-  const { tasks, addTask, toggleDone, deleteTask, updateTask } = useTasks()
+  const {
+    tasks,
+    isLoading,
+    isError,
+    retry,
+    addTask,
+    toggleDone,
+    deleteTask,
+    updateTask,
+  } = useTasks()
   const { projects, addProject } = useProjects()
   const [view, setView] = useState<View>({ type: 'list', key: 'today' })
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
@@ -42,7 +52,7 @@ export default function TasksPage() {
   // The tally counts exactly what the Today list shows, so the numbers in
   // the header always agree with the rows on screen.
   const todaysTasks = tasksForList(tasks, 'today', now)
-  const doneToday = todaysTasks.filter((task) => task.done).length
+  const doneToday = todaysTasks.filter(isDone).length
 
   // "N" opens the composer from anywhere except while typing; Escape closes it.
   useEffect(() => {
@@ -135,6 +145,8 @@ export default function TasksPage() {
           view={view}
           listLabel={listLabel}
           tasks={visibleTasks}
+          loadState={isLoading ? 'loading' : isError ? 'error' : 'ready'}
+          onRetryLoad={retry}
           selectedTaskId={selectedTaskId}
           onSelectTask={setSelectedTaskId}
           onToggleDone={toggleDone}
