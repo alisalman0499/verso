@@ -63,9 +63,11 @@ item, in this order. Each gets a short plan approved before building.
 - [x] **Task page** at `/tasks/:id`: the full detail view as a page. Also gives
       phones a way to edit tasks (the detail panel is hidden below `lg`). The
       "Talk about this task" chat becomes a section here in Step 5.
-- [ ] **Home / Overview** as the main page, above the lists in the sidebar.
-      Introduces real routes (`/` = Home, lists get their own URLs). Waiting on
-      the owner's details for what it shows.
+- [x] **Overview page and routes.** `/` is Overview, first in the sidebar;
+      lists and projects live at `/lists/:listKey` and `/projects/:id`, and old
+      `/?list=` links redirect. The page is a placeholder for now.
+- [ ] **Overview content.** What the Overview shows — to be brainstormed with
+      the owner.
 - [x] **Calendar** at `/calendar`: week (days × hours, blocks sized by
       estimate, deadlines in a strip, click an empty slot to add) and month,
       switchable; a list of days on phones.

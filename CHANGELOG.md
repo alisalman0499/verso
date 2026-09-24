@@ -5,6 +5,18 @@ merged pull request, newest first. For the exact code changes see the git
 history; for the reasoning behind technical decisions see
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
+## 2026-09-25 · Overview, and a page for every list
+
+- **Verso now opens on Overview**, the new first item in the sidebar, above
+  Calendar. For now it's a placeholder with a link to Today; what it shows
+  is still to be decided. _Why:_ a starting page that brings the week
+  together, rather than dropping you straight into one list.
+- **Every list and project has its own address**, like `/lists/upcoming`
+  or `/projects/…`. Reloading, bookmarking, opening in a new tab and the
+  browser's Back button all keep you where you were. Old links
+  (`/?list=upcoming`) still work and forward to the new address.
+- **The sidebar items sit a little lower**, giving the Verso name more room.
+
 ## 2026-09-24 · Calendar
 
 - **A calendar, in week and month.** Open it from **Calendar** at the top of
