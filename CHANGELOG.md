@@ -5,6 +5,17 @@ merged pull request, newest first. For the exact code changes see the git
 history; for the reasoning behind technical decisions see
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
+## 2026-09-24 · A page for every task
+
+- **Every task has its own page**, with everything the side panel has, more
+  room, and a Back link to the list you came from. Open it with "Open page ↗"
+  in the side panel, or on a phone with the `›` at the end of each row.
+  _Why:_ on a phone the side panel is hidden, so there was no way to edit a
+  task at all. This page is also where "Talk about this task" will live.
+- **Your place in the list is kept.** The list or project you're looking at is
+  now part of the web address, so going to a task and back, reloading, or
+  bookmarking the page keeps it.
+
 ## 2026-09-24 · Subtasks in the list
 
 - **Clicking a task folds its subtasks open** right under it in the list, as

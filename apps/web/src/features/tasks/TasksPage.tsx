@@ -18,6 +18,7 @@ import Sidebar from './Sidebar'
 import TaskDetail from './TaskDetail'
 import TaskList from './TaskList'
 import { useProjects } from './useProjects'
+import { useNow } from './useNow'
 import { useTasks } from './useTasks'
 
 export default function TasksPage() {
@@ -49,16 +50,9 @@ export default function TasksPage() {
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null)
   const [isComposerOpen, setComposerOpen] = useState(false)
 
-  // The one clock for the whole page: held in state and ticked on a timer,
-  // rather than `new Date()` read fresh in every component that needs it.
-  // Reading it fresh looks harmless but means nothing re-renders on its own
-  // at midnight — the Today list would keep yesterday's contents until the
-  // user happened to click something.
-  const [now, setNow] = useState(() => new Date())
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30_000)
-    return () => clearInterval(id)
-  }, [])
+  // The one clock for the whole page, passed down rather than each component
+  // reading `new Date()` on its own (see useNow).
+  const now = useNow()
 
   // Everything below the lists works on top-level tasks: subtasks are shown
   // under their parent, never as rows, counts or marks of their own.
@@ -192,6 +186,7 @@ export default function TasksPage() {
           onSelectTask={handleSelectTask}
           expandedTaskId={expandedTaskId}
           expandedSubtasks={expandedSubtasks}
+          returnTo={returnTo}
           onToggleDone={toggleDone}
           isComposerOpen={isComposerOpen}
           onCloseComposer={() => setComposerOpen(false)}

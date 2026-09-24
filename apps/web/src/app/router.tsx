@@ -3,6 +3,7 @@ import ForgotPasswordPage from '../features/auth/ForgotPasswordPage'
 import LoginPage from '../features/auth/LoginPage'
 import ResetPasswordPage from '../features/auth/ResetPasswordPage'
 import SignupPage from '../features/auth/SignupPage'
+import TaskPage from '../features/tasks/TaskPage'
 import TasksPage from '../features/tasks/TasksPage'
 import RequireAuth from './RequireAuth'
 
@@ -16,6 +17,9 @@ export const router = createBrowserRouter([
     // A layout route with no path: its children only render once
     // RequireAuth has confirmed a session.
     element: <RequireAuth />,
-    children: [{ path: '/', element: <TasksPage /> }],
+    children: [
+      { path: '/', element: <TasksPage /> },
+      { path: '/tasks/:taskId', element: <TaskPage /> },
+    ],
   },
 ])

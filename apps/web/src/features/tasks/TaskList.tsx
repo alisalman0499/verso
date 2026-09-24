@@ -25,6 +25,8 @@ type TaskListProps = {
   onSelectTask: (id: string) => void
   expandedTaskId: string | null
   expandedSubtasks: Task[]
+  // This list's URL, for the Back link on a task's page.
+  returnTo: string
   onToggleDone: (id: string) => void
   isComposerOpen: boolean
   onCloseComposer: () => void
@@ -43,6 +45,7 @@ export default function TaskList({
   onSelectTask,
   expandedTaskId,
   expandedSubtasks,
+  returnTo,
   onToggleDone,
   isComposerOpen,
   onCloseComposer,
@@ -169,6 +172,7 @@ export default function TaskList({
                   isSelected={task.id === selectedTaskId}
                   isExpanded={task.id === expandedTaskId}
                   subtasks={task.id === expandedTaskId ? expandedSubtasks : []}
+                  returnTo={returnTo}
                   onToggleDone={onToggleDone}
                   onSelect={onSelectTask}
                   now={now}

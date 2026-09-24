@@ -54,7 +54,7 @@ item, in this order. Each gets a short plan approved before building.
       add, tick off, delete. Subtasks appear only under their parent; list rows
       show progress (`2/5`). A parent with subtasks shows its estimate as the
       sum of theirs. Step 2's AI breakdown later fills this same list.
-- [ ] **Task page** at `/tasks/:id`: the full detail view as a page. Also gives
+- [x] **Task page** at `/tasks/:id`: the full detail view as a page. Also gives
       phones a way to edit tasks (the detail panel is hidden below `lg`). The
       "Talk about this task" chat becomes a section here in Step 5.
 - [ ] **Home / Overview** as the main page, above the lists in the sidebar.

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import Checkbox from '../../components/Checkbox'
 import { formatDuration, formatWhen } from '../../lib/time'
 import type { Task } from '../../types/task'
@@ -13,6 +14,8 @@ type TaskItemProps = {
   isExpanded: boolean
   // The task's subtasks, in order. Empty unless the row is expanded.
   subtasks: Task[]
+  // The list's URL, so the task page's Back link returns here.
+  returnTo: string
   onToggleDone: (id: string) => void
   onSelect: (id: string) => void
   now: Date
@@ -24,6 +27,7 @@ export default function TaskItem({
   isSelected,
   isExpanded,
   subtasks,
+  returnTo,
   onToggleDone,
   onSelect,
   now,
@@ -122,6 +126,18 @@ export default function TaskItem({
         <span className="min-w-[52px] flex-none text-right font-mono text-[11px] whitespace-nowrap text-mute">
           {task.scheduledAt !== null ? formatWhen(task.scheduledAt, now) : '—'}
         </span>
+
+        {/* Phones have no side panel, so each row links to the task's page.
+            Wide screens use the panel's "Open page" link instead. */}
+        <Link
+          to={`/tasks/${task.id}`}
+          state={{ from: returnTo }}
+          onClick={(event) => event.stopPropagation()}
+          aria-label={`Open "${task.title}"`}
+          className="-my-2 -mr-2 flex-none px-2 py-2 text-lg leading-none text-mute-2 hover:text-bone lg:hidden"
+        >
+          ›
+        </Link>
       </div>
 
       {showSubtasks && (
