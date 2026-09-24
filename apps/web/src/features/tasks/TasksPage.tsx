@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import DayRail from './DayRail'
 import {
   isDone,
@@ -37,6 +37,9 @@ export default function TasksPage() {
   // component state: leaving for a task's page and coming back, reloading,
   // or bookmarking all keep your place.
   const [searchParams, setSearchParams] = useSearchParams()
+  const location = useLocation()
+  // Where a task's page should send you back to: this list, as it is now.
+  const returnTo = location.pathname + location.search
   const view = viewFromSearchParams(searchParams)
   function setView(next: View) {
     setSearchParams(searchParamsForView(next))
@@ -206,6 +209,7 @@ export default function TasksPage() {
         onUpdateTask={updateTask}
         onAddSubtask={addSubtask}
         onDeleteSubtask={deleteTask}
+        returnTo={returnTo}
         now={now}
       />
     </div>
