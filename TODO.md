@@ -47,7 +47,7 @@ Requested by the owner after using Step 1 (2026-09-24). One branch and PR per
 item, in this order. Each gets a short plan approved before building.
 
 - [x] **Changelog.** `CHANGELOG.md`, one user-level entry per merged PR.
-- [ ] **Estimate rework.** Entered and shown as hours and minutes (`45m`,
+- [x] **Estimate rework.** Entered and shown as hours and minutes (`45m`,
       `1h 30m`), typed as `1h 30m` / `90` / `1.5h` in a text field with quick
       picks (15m · 30m · 1h · 2h). No number spinner. Still stored in minutes.
 - [ ] **Manual subtasks.** A Subtasks section above Notes in the detail panel:
