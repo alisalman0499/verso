@@ -1,4 +1,7 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { authClient } from '../../lib/authClient'
 import type { Project } from '../../types/project'
 import type { Task } from '../../types/task'
 import { LISTS, openTaskCount, tasksForList, type View } from './grouping'
@@ -23,6 +26,8 @@ export default function Sidebar({
   const [isProjectsOpen, setProjectsOpen] = useState(true)
   const [isAddingProject, setAddingProject] = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (isAddingProject) nameRef.current?.focus()
@@ -32,6 +37,14 @@ export default function Sidebar({
     const name = nameRef.current?.value.trim() ?? ''
     if (name !== '') onAddProject(name)
     setAddingProject(false)
+  }
+
+  async function handleSignOut() {
+    await authClient.signOut()
+    // Drop every cached query, not just the session: the next person to sign
+    // in on this browser must never see a flash of the previous user's tasks.
+    queryClient.clear()
+    navigate('/login', { replace: true })
   }
 
   return (
@@ -151,6 +164,16 @@ export default function Sidebar({
           </>
         )}
       </nav>
+
+      <div className="flex-none border-t border-hairline px-3 py-3">
+        <button
+          type="button"
+          onClick={handleSignOut}
+          className="flex w-full items-center rounded-md px-3 py-2 text-left text-sm text-mute-2 hover:bg-ink-3 hover:text-mute"
+        >
+          Sign out
+        </button>
+      </div>
     </aside>
   )
 }
