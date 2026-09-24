@@ -201,6 +201,19 @@ export function groupUpcoming(tasks: Task[]): TaskGroup[] {
   return [...groups.values()]
 }
 
+// All tasks, split by the one list each task belongs to (see classify), so
+// every task shows once: a task done today sits under Completed, not Today.
+// Keeps the incoming order within each section; empty sections are left out.
+export function groupAll(tasks: Task[], now: Date): TaskGroup[] {
+  const order: Exclude<ListKey, 'all'>[] = ['today', 'upcoming', 'done']
+  return order
+    .map((key) => ({
+      label: LISTS.find((list) => list.key === key)?.label ?? key,
+      items: tasks.filter((task) => classify(task, now) === key),
+    }))
+    .filter((group) => group.items.length > 0)
+}
+
 export function groupFlat(tasks: Task[]): TaskGroup[] {
   return [{ label: null, items: tasks }]
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   classify,
   estimateFromSubtasks,
+  groupAll,
   groupToday,
   groupUpcoming,
   isInList,
@@ -278,6 +279,42 @@ describe('groupUpcoming', () => {
     const groups = groupUpcoming(tasks)
     expect(groups).toHaveLength(1)
     expect(groups[0].items.map((task) => task.id)).toEqual(['a', 'b'])
+  })
+})
+
+describe('groupAll', () => {
+  const today = makeTask({ id: 'today', scheduledAt: at(2026, 8, 3, 14) })
+  const upcoming = makeTask({ id: 'upcoming', scheduledAt: at(2026, 8, 5, 9) })
+  const doneToday = makeTask({
+    id: 'done-today',
+    scheduledAt: at(2026, 8, 3, 8),
+    completedAt: DONE_AT,
+  })
+
+  it('splits tasks into Today, Upcoming and Completed, in that order', () => {
+    const groups = groupAll([doneToday, upcoming, today], NOW)
+    expect(
+      groups.map((group) => [group.label, group.items.map((task) => task.id)]),
+    ).toEqual([
+      ['Today', ['today']],
+      ['Upcoming', ['upcoming']],
+      ['Completed', ['done-today']],
+    ])
+  })
+
+  it('puts a task done today under Completed only', () => {
+    const ids = groupAll([doneToday], NOW).flatMap((group) =>
+      group.items.map((task) => task.id),
+    )
+    expect(ids).toEqual(['done-today'])
+    expect(groupAll([doneToday], NOW)[0].label).toBe('Completed')
+  })
+
+  it('leaves out empty sections', () => {
+    expect(groupAll([upcoming], NOW).map((group) => group.label)).toEqual([
+      'Upcoming',
+    ])
+    expect(groupAll([], NOW)).toEqual([])
   })
 })
 

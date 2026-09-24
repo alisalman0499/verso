@@ -1,6 +1,7 @@
 import { useEffect, useRef, type KeyboardEvent } from 'react'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '../../lib/time'
 import {
+  groupAll,
   groupFlat,
   groupToday,
   groupUpcoming,
@@ -90,13 +91,15 @@ export default function TaskList({
   const emptyLabel =
     view.type === 'project' ? listLabel : listLabel.toLowerCase()
 
-  // A project view groups flat, same as All tasks — grouping it by day
-  // like Upcoming might read better once a project has enough tasks to
-  // tell, but that's a call to make once there's real data to look at.
+  // A project view groups flat — grouping it by day like Upcoming might
+  // read better once a project has enough tasks to tell, but that's a call
+  // to make once there's real data to look at.
   let groups: TaskGroup[]
   if (view.type === 'list' && view.key === 'today') groups = groupToday(tasks)
   else if (view.type === 'list' && view.key === 'upcoming')
     groups = groupUpcoming(tasks)
+  else if (view.type === 'list' && view.key === 'all')
+    groups = groupAll(tasks, now)
   else groups = groupFlat(tasks)
 
   return (
