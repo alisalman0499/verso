@@ -7,11 +7,9 @@ history; for the reasoning behind technical decisions see
 
 ## 2026-09-25 · Tasks in the sidebar
 
-- **"Lists" is now "Tasks"**, and it's a row you can click: it opens every
-  task (what "All tasks" used to be). Today, Upcoming and Completed sit
-  under it, and the arrow folds them away. _Why:_ the name says what's
-  there, and "all your tasks" belongs at the top of the section rather
-  than as one more row in it.
+- **"Lists" is now "Tasks"**, a section you can fold away with a click.
+  Today, Upcoming, Completed and All tasks sit inside it. _Why:_ the name
+  says what's there, and folding it keeps a long sidebar tidy.
 
 ## 2026-09-25 · Overview, and a page for every list
 

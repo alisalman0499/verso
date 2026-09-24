@@ -73,36 +73,22 @@ export default function Sidebar({
           </NavLink>
         </div>
 
-        {/* Tasks is both a page (every task, the 'all' list) and the
-            heading of the narrower lists, so the row has two targets: the
-            name opens the page, the chevron folds the section. The chevron
-            sits on top of the link rather than inside it, because a button
-            can't go inside a link; `group` lights the whole row either way.
-            No count: the chevron takes the count column, as on Projects. */}
-        <div className="group relative mt-4">
-          <NavLink
-            to={pathForView({ type: 'list', key: 'all' })}
-            className={(state) =>
-              state.isActive
-                ? navItemClass(state)
-                : `${navItemClass(state)} group-hover:bg-ink-3 group-hover:text-bone`
-            }
-          >
-            <span className="flex-1 text-sm">Tasks</span>
-          </NavLink>
-          <button
-            type="button"
-            onClick={() => setTasksOpen((open) => !open)}
-            aria-expanded={isTasksOpen}
-            aria-label="Task lists"
-            className="absolute inset-y-0 right-0 flex items-center px-3"
-          >
-            <Chevron isOpen={isTasksOpen} />
-          </button>
-        </div>
+        {/* A heading that folds the task lists away, not a page of its own:
+            every list, All tasks included, is a row inside it. Styled as a
+            nav row rather than a small label like Projects, since it's the
+            main section. No count: the chevron takes the count column. */}
+        <button
+          type="button"
+          onClick={() => setTasksOpen((open) => !open)}
+          aria-expanded={isTasksOpen}
+          className={`mt-4 ${navItemClass({ isActive: false })}`}
+        >
+          <span className="flex-1 text-sm">Tasks</span>
+          <Chevron isOpen={isTasksOpen} />
+        </button>
         {isTasksOpen && (
           <div className="pl-3">
-            {LISTS.filter((list) => list.key !== 'all').map((list) => {
+            {LISTS.map((list) => {
               const count = tasksForList(tasks, list.key, now).length
               return (
                 <NavLink
