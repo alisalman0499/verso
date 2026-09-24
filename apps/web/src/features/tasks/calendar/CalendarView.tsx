@@ -8,9 +8,16 @@ import {
   plannedMinutes,
   searchParamsForCalendar,
   shiftCalendar,
+  type CalendarMode,
   type CalendarPosition,
 } from './calendarLayout'
+import MonthView from './MonthView'
 import WeekView from './WeekView'
+
+const MODES: { key: CalendarMode; label: string }[] = [
+  { key: 'week', label: 'Week' },
+  { key: 'month', label: 'Month' },
+]
 
 type CalendarViewProps = {
   // Top-level tasks only, as everywhere else.
@@ -77,6 +84,25 @@ export default function CalendarView({
         </div>
 
         <div className="ml-auto flex items-center gap-2 pb-1.5">
+          {/* Switching keeps the date: the month holding this week, or the
+              week of the date that was in view. */}
+          <div className="mr-2 flex rounded-full border border-pure/16 p-0.5">
+            {MODES.map((mode) => (
+              <button
+                key={mode.key}
+                type="button"
+                onClick={() => goTo({ ...position, mode: mode.key })}
+                aria-pressed={position.mode === mode.key}
+                className={
+                  position.mode === mode.key
+                    ? 'rounded-full bg-pure px-3 py-1 text-sm text-ink'
+                    : 'rounded-full px-3 py-1 text-sm text-mute hover:text-bone'
+                }
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             onClick={() => goTo(shiftCalendar(position, -1))}
@@ -105,15 +131,28 @@ export default function CalendarView({
         </div>
       </div>
 
-      <WeekView
-        date={position.date}
-        tasks={tasks}
-        lengthOf={(task) => plannedMinutes(task, progress.get(task.id) ?? null)}
-        selectedTaskId={selectedTaskId}
-        onOpenTask={onOpenTask}
-        onAddTask={onAddTask}
-        now={now}
-      />
+      {position.mode === 'week' ? (
+        <WeekView
+          date={position.date}
+          tasks={tasks}
+          lengthOf={(task) =>
+            plannedMinutes(task, progress.get(task.id) ?? null)
+          }
+          selectedTaskId={selectedTaskId}
+          onOpenTask={onOpenTask}
+          onAddTask={onAddTask}
+          now={now}
+        />
+      ) : (
+        <MonthView
+          date={position.date}
+          tasks={tasks}
+          selectedTaskId={selectedTaskId}
+          onOpenTask={onOpenTask}
+          onOpenWeek={(day) => goTo({ mode: 'week', date: day })}
+          now={now}
+        />
+      )}
     </>
   )
 }
