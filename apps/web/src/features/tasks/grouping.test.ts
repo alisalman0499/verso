@@ -9,10 +9,13 @@ import {
   openTaskCount,
   progressByParent,
   projectIdForView,
+  searchParamsForView,
   subtasksOf,
   tasksForList,
   tasksForView,
   topLevelTasks,
+  viewFromSearchParams,
+  type View,
 } from './grouping'
 import type { Task } from '../../types/task'
 
@@ -350,5 +353,43 @@ describe('subtasks', () => {
   it('has no estimate when no subtask has one', () => {
     expect(estimateFromSubtasks([unestimated])).toBeNull()
     expect(estimateFromSubtasks([])).toBeNull()
+  })
+})
+
+describe('views in the URL', () => {
+  const read = (query: string) =>
+    viewFromSearchParams(new URLSearchParams(query))
+
+  it('defaults to Today', () => {
+    expect(read('')).toEqual({ type: 'list', key: 'today' })
+  })
+
+  it('reads a fixed list and a project', () => {
+    expect(read('list=upcoming')).toEqual({ type: 'list', key: 'upcoming' })
+    expect(read('project=abc')).toEqual({ type: 'project', projectId: 'abc' })
+  })
+
+  it('falls back to Today for anything it does not recognise', () => {
+    expect(read('list=someday')).toEqual({ type: 'list', key: 'today' })
+    expect(read('project=')).toEqual({ type: 'list', key: 'today' })
+  })
+
+  it('writes Today as an empty query string', () => {
+    expect(searchParamsForView({ type: 'list', key: 'today' }).toString()).toBe(
+      '',
+    )
+  })
+
+  it('reads back every view it writes', () => {
+    const views: View[] = [
+      { type: 'list', key: 'today' },
+      { type: 'list', key: 'upcoming' },
+      { type: 'list', key: 'done' },
+      { type: 'list', key: 'all' },
+      { type: 'project', projectId: 'abc' },
+    ]
+    for (const view of views) {
+      expect(viewFromSearchParams(searchParamsForView(view))).toEqual(view)
+    }
   })
 })

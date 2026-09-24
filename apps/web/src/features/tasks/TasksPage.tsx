@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import DayRail from './DayRail'
 import {
   isDone,
   LISTS,
   progressByParent,
   projectIdForView,
+  searchParamsForView,
   subtasksOf,
   tasksForList,
   tasksForView,
   topLevelTasks,
+  viewFromSearchParams,
   type View,
 } from './grouping'
 import Sidebar from './Sidebar'
@@ -30,7 +33,14 @@ export default function TasksPage() {
     updateTask,
   } = useTasks()
   const { projects, addProject } = useProjects()
-  const [view, setView] = useState<View>({ type: 'list', key: 'today' })
+  // The open list comes from the URL (see viewFromSearchParams), not from
+  // component state: leaving for a task's page and coming back, reloading,
+  // or bookmarking all keep your place.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const view = viewFromSearchParams(searchParams)
+  function setView(next: View) {
+    setSearchParams(searchParamsForView(next))
+  }
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   // The one task whose subtasks are folded open in the list, if any.
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null)
