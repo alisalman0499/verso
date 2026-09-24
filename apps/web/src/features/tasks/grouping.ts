@@ -167,3 +167,67 @@ export function groupUpcoming(tasks: Task[]): TaskGroup[] {
 export function groupFlat(tasks: Task[]): TaskGroup[] {
   return [{ label: null, items: tasks }]
 }
+
+// Subtasks live under their parent, never as rows of their own: the lists,
+// counts and day rail all work on top-level tasks only.
+export function topLevelTasks(tasks: Task[]): Task[] {
+  return tasks.filter((task) => task.parentId === null)
+}
+
+export function subtasksOf(tasks: Task[], parentId: string): Task[] {
+  return tasks
+    .filter((task) => task.parentId === parentId)
+    .sort(
+      (a, b) =>
+        a.position - b.position || a.createdAt.localeCompare(b.createdAt),
+    )
+}
+
+export type SubtaskEstimate = { total: number; remaining: number }
+
+export type Progress = {
+  done: number
+  total: number
+  // The subtasks' estimates added up; null when none of them has one.
+  estimate: SubtaskEstimate | null
+}
+
+// "2 of 5 subtasks done, 2h 30m of work", for every task that has subtasks,
+// in one pass — the list asks for it once per row.
+export function progressByParent(tasks: Task[]): Map<string, Progress> {
+  const progress = new Map<string, Progress>()
+  for (const task of tasks) {
+    if (task.parentId === null) continue
+    const entry = progress.get(task.parentId) ?? {
+      done: 0,
+      total: 0,
+      estimate: null,
+    }
+    entry.total += 1
+    if (isDone(task)) entry.done += 1
+    if (task.estimateMinutes !== null) {
+      const estimate = entry.estimate ?? { total: 0, remaining: 0 }
+      estimate.total += task.estimateMinutes
+      if (!isDone(task)) estimate.remaining += task.estimateMinutes
+      entry.estimate = estimate
+    }
+    progress.set(task.parentId, entry)
+  }
+  return progress
+}
+
+// The parent's estimate, worked out from its subtasks: the total, and what's
+// left of it among the ones still open. null when no subtask has an estimate,
+// so the parent's own estimate field is used instead.
+export function estimateFromSubtasks(subtasks: Task[]): SubtaskEstimate | null {
+  const estimated = subtasks.filter((task) => task.estimateMinutes !== null)
+  if (estimated.length === 0) return null
+  let total = 0
+  let remaining = 0
+  for (const task of estimated) {
+    const minutes = task.estimateMinutes ?? 0
+    total += minutes
+    if (!isDone(task)) remaining += minutes
+  }
+  return { total, remaining }
+}

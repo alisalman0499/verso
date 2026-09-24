@@ -51,16 +51,18 @@ async function assertOwnsProject(userId: string, projectId: string) {
 }
 
 // A parent must be the user's own task, and must not itself be a subtask:
-// subtasks are one level deep.
-async function assertValidParent(userId: string, parentId: string) {
+// subtasks are one level deep. Returns the parent's project, which its
+// subtasks share.
+async function findValidParent(userId: string, parentId: string) {
   const [parent] = await db
-    .select({ parentId: tasks.parentId })
+    .select({ parentId: tasks.parentId, projectId: tasks.projectId })
     .from(tasks)
     .where(and(eq(tasks.id, parentId), eq(tasks.userId, userId)))
   if (parent === undefined) throw new InvalidInputError('Parent task not found')
   if (parent.parentId !== null) {
     throw new InvalidInputError('Subtasks cannot have subtasks of their own')
   }
+  return { projectId: parent.projectId }
 }
 
 // New tasks go to the end of their siblings (tasks with the same parent).
@@ -84,10 +86,19 @@ export async function createTask(
   input: CreateTaskInput,
   source: TaskSource = 'user',
 ): Promise<Task> {
-  const projectId = input.projectId ?? null
   const parentId = input.parentId ?? null
-  if (projectId !== null) await assertOwnsProject(userId, projectId)
-  if (parentId !== null) await assertValidParent(userId, parentId)
+  let projectId = input.projectId ?? null
+  if (parentId !== null) {
+    // A subtask always lives in its parent's project. Sending a different
+    // one is a client bug, not something to silently override.
+    const parent = await findValidParent(userId, parentId)
+    if (input.projectId !== undefined && input.projectId !== parent.projectId) {
+      throw new InvalidInputError("A subtask belongs to its parent's project")
+    }
+    projectId = parent.projectId
+  } else if (projectId !== null) {
+    await assertOwnsProject(userId, projectId)
+  }
 
   const [row] = await db
     .insert(tasks)
@@ -119,6 +130,11 @@ export async function updateTask(
     .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
   if (current === undefined) throw new NotFoundError('Task not found')
 
+  const movesProject =
+    patch.projectId !== undefined && patch.projectId !== current.projectId
+  if (movesProject && current.parentId !== null) {
+    throw new InvalidInputError("A subtask's project follows its parent")
+  }
   if (patch.projectId !== undefined && patch.projectId !== null) {
     await assertOwnsProject(userId, patch.projectId)
   }
@@ -129,22 +145,35 @@ export async function updateTask(
   if (patch.completed === true) completedAt = current.completedAt ?? new Date()
   if (patch.completed === false) completedAt = null
 
-  const [row] = await db
-    .update(tasks)
-    .set({
-      title: patch.title,
-      notes: patch.notes,
-      projectId: patch.projectId,
-      kind: patch.kind,
-      dueAt: toDate(patch.dueAt),
-      scheduledAt: toDate(patch.scheduledAt),
-      estimateMinutes: patch.estimateMinutes,
-      completedAt,
-    })
-    .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
-    .returning()
-  // Deleted between the read above and this write.
-  if (row === undefined) throw new NotFoundError('Task not found')
+  // One transaction: when a parent moves to another project, its subtasks
+  // move with it, and either both writes land or neither does. `tx` is the
+  // transaction's own handle; queries run through it are part of it.
+  const row = await db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(tasks)
+      .set({
+        title: patch.title,
+        notes: patch.notes,
+        projectId: patch.projectId,
+        kind: patch.kind,
+        dueAt: toDate(patch.dueAt),
+        scheduledAt: toDate(patch.scheduledAt),
+        estimateMinutes: patch.estimateMinutes,
+        completedAt,
+      })
+      .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
+      .returning()
+    // Deleted between the read above and this write.
+    if (updated === undefined) throw new NotFoundError('Task not found')
+
+    if (movesProject) {
+      await tx
+        .update(tasks)
+        .set({ projectId: patch.projectId })
+        .where(and(eq(tasks.parentId, taskId), eq(tasks.userId, userId)))
+    }
+    return updated
+  })
   return toTask(row)
 }
 

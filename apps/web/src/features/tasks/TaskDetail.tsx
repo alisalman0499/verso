@@ -1,26 +1,41 @@
 import { useState, type FocusEvent } from 'react'
-import { fromDatetimeLocalValue, toDatetimeLocalValue } from '../../lib/time'
+import {
+  formatDuration,
+  fromDatetimeLocalValue,
+  toDatetimeLocalValue,
+} from '../../lib/time'
 import EstimateField from './EstimateField'
-import { classify, isDone, LISTS } from './grouping'
+import { classify, estimateFromSubtasks, isDone, LISTS } from './grouping'
+import SubtaskList from './SubtaskList'
 import type { UpdateTaskInput } from '../../types/task'
 import type { Project } from '../../types/project'
 import type { Task } from '../../types/task'
 
 type TaskDetailProps = {
   task: Task | null
+  subtasks: Task[]
   projects: Project[]
   onToggleDone: (id: string) => void
   onDelete: (id: string) => void
   onUpdateTask: (id: string, patch: UpdateTaskInput) => void
+  onAddSubtask: (
+    parentId: string,
+    title: string,
+    estimateMinutes: number | null,
+  ) => void
+  onDeleteSubtask: (id: string) => void
   now: Date
 }
 
 export default function TaskDetail({
   task,
+  subtasks,
   projects,
   onToggleDone,
   onDelete,
   onUpdateTask,
+  onAddSubtask,
+  onDeleteSubtask,
   now,
 }: TaskDetailProps) {
   // Which task's delete button is armed, not a plain boolean — so that
@@ -50,6 +65,10 @@ export default function TaskDetail({
   // carries the narrowed type in, so no `as` cast is needed.
   const selected = task
   const isConfirmingDelete = confirmDeleteId === selected.id
+
+  // With estimated subtasks, the task's estimate is theirs added up, not a
+  // number typed separately that could disagree with them.
+  const subtaskEstimate = estimateFromSubtasks(subtasks)
 
   const listLabel =
     LISTS.find((list) => list.key === classify(selected, now))?.label ?? ''
@@ -169,12 +188,23 @@ export default function TaskDetail({
               Estimate
             </dt>
             <dd>
-              <EstimateField
-                minutes={selected.estimateMinutes}
-                onChange={(estimateMinutes) =>
-                  onUpdateTask(selected.id, { estimateMinutes })
-                }
-              />
+              {subtaskEstimate === null ? (
+                <EstimateField
+                  minutes={selected.estimateMinutes}
+                  onChange={(estimateMinutes) =>
+                    onUpdateTask(selected.id, { estimateMinutes })
+                  }
+                />
+              ) : (
+                <span className="text-right text-sm text-bone">
+                  {formatDuration(subtaskEstimate.total)}
+                  <span className="ml-2 font-mono text-[10px] text-mute-2">
+                    {subtaskEstimate.remaining === 0
+                      ? 'from subtasks'
+                      : `${formatDuration(subtaskEstimate.remaining)} left`}
+                  </span>
+                </span>
+              )}
             </dd>
           </div>
           <div className="flex justify-between gap-4 border-b border-hairline py-3">
@@ -208,6 +238,20 @@ export default function TaskDetail({
             <dd className="text-right text-sm text-bone">{listLabel}</dd>
           </div>
         </dl>
+
+        <SubtaskList
+          subtasks={subtasks}
+          isParentDone={isDone(selected)}
+          onAdd={(title, estimateMinutes) =>
+            onAddSubtask(selected.id, title, estimateMinutes)
+          }
+          onToggleDone={onToggleDone}
+          onDelete={onDeleteSubtask}
+          onSetEstimate={(id, estimateMinutes) =>
+            onUpdateTask(id, { estimateMinutes })
+          }
+          onCompleteParent={() => onToggleDone(selected.id)}
+        />
 
         <textarea
           defaultValue={selected.notes}
