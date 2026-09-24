@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
+import Chevron from '../../components/Chevron'
 import { authClient } from '../../lib/authClient'
 import type { Project } from '../../types/project'
 import type { Task } from '../../types/task'
@@ -27,6 +28,7 @@ export default function Sidebar({
   onAddProject,
   now,
 }: SidebarProps) {
+  const [isTasksOpen, setTasksOpen] = useState(true)
   const [isProjectsOpen, setProjectsOpen] = useState(true)
   const [isAddingProject, setAddingProject] = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
@@ -59,7 +61,7 @@ export default function Sidebar({
 
       <nav className="flex-1 overflow-y-auto px-3">
         {/* Views of your time rather than lists of tasks, so they sit apart,
-            above the lists. These are links, not buttons: each one is a page
+            above Tasks. These are links, not buttons: each one is a page
             with its own URL. `end` keeps Overview from matching every path,
             since they all start with "/". */}
         <div className="mt-12">
@@ -71,22 +73,38 @@ export default function Sidebar({
           </NavLink>
         </div>
 
-        <div className="px-3 pb-2 pt-4 font-mono text-[10px] tracking-[0.16em] text-mute uppercase">
-          Lists
-        </div>
-        {LISTS.map((list) => {
-          const count = tasksForList(tasks, list.key, now).length
-          return (
-            <NavLink
-              key={list.key}
-              to={pathForView({ type: 'list', key: list.key })}
-              className={navItemClass}
-            >
-              <span className="flex-1 text-sm">{list.label}</span>
-              <span className="font-mono text-[11px] text-mute-2">{count}</span>
-            </NavLink>
-          )
-        })}
+        {/* A heading that folds the task lists away, not a page of its own:
+            every list, All tasks included, is a row inside it. Styled as a
+            nav row rather than a small label like Projects, since it's the
+            main section. No count: the chevron takes the count column. */}
+        <button
+          type="button"
+          onClick={() => setTasksOpen((open) => !open)}
+          aria-expanded={isTasksOpen}
+          className={`mt-4 ${navItemClass({ isActive: false })}`}
+        >
+          <span className="flex-1 text-sm">Tasks</span>
+          <Chevron isOpen={isTasksOpen} />
+        </button>
+        {isTasksOpen && (
+          <div className="pl-3">
+            {LISTS.map((list) => {
+              const count = tasksForList(tasks, list.key, now).length
+              return (
+                <NavLink
+                  key={list.key}
+                  to={pathForView({ type: 'list', key: list.key })}
+                  className={navItemClass}
+                >
+                  <span className="flex-1 text-sm">{list.label}</span>
+                  <span className="font-mono text-[11px] text-mute-2">
+                    {count}
+                  </span>
+                </NavLink>
+              )
+            })}
+          </div>
+        )}
 
         <button
           type="button"
@@ -95,21 +113,7 @@ export default function Sidebar({
           className="mt-2 flex w-full items-center justify-between px-3 pb-2 pt-4 font-mono text-[10px] tracking-[0.16em] text-mute uppercase"
         >
           <span>Projects</span>
-          <svg
-            viewBox="0 0 10 10"
-            className={
-              isProjectsOpen
-                ? 'h-[7px] w-[7px] fill-none stroke-mute'
-                : 'h-[7px] w-[7px] -rotate-90 fill-none stroke-mute'
-            }
-          >
-            <path
-              d="M2 3.5 5 6.5 8 3.5"
-              strokeWidth="1.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <Chevron isOpen={isProjectsOpen} />
         </button>
 
         {isProjectsOpen && (

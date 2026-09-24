@@ -5,6 +5,16 @@ merged pull request, newest first. For the exact code changes see the git
 history; for the reasoning behind technical decisions see
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
+## 2026-09-25 · Tasks in the sidebar
+
+- **"Lists" is now "Tasks"**, a section you can fold away with a click.
+  Today, Upcoming, Completed and All tasks sit inside it. _Why:_ the name
+  says what's there, and folding it keeps a long sidebar tidy.
+- **All tasks is split into Today, Upcoming and Completed**, each with its
+  own heading and count. Each task shows once, under the list it belongs
+  to, so a task finished today sits under Completed. _Why:_ a long list of
+  everything is easier to scan in parts.
+
 ## 2026-09-25 · Overview, and a page for every list
 
 - **Verso now opens on Overview**, the new first item in the sidebar, above
