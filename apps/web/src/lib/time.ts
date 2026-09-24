@@ -126,3 +126,21 @@ export function splitTrailingDuration(text: string): {
   if (minutes === null) return { title: trimmed, minutes: null }
   return { title: match[1], minutes }
 }
+
+const weekdayDayMonthFormatter = new Intl.DateTimeFormat('en-GB', {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+})
+
+// "Fri 2 Oct, 23:59" — a date written out in full, for places with room to
+// read it (the task summary). The year is added only when it isn't this
+// year's, so the common case stays short without next year's deadline
+// looking like this year's.
+export function formatFullDateTime(iso: string, now: Date): string {
+  const date = new Date(iso)
+  const day = weekdayDayMonthFormatter.format(date)
+  const year =
+    date.getFullYear() === now.getFullYear() ? '' : ` ${date.getFullYear()}`
+  return `${day}${year}, ${formatTime(iso)}`
+}
