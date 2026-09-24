@@ -1,263 +1,319 @@
 # Architecture
 
 How Verso is put together and why. For what it does and how to run it, see the
-[README](README.md).
+[README](README.md). For what's next, see [TODO.md](TODO.md).
 
 ## The shape of it
 
-Verso is a single-route React app with no server. State lives in React, is
-persisted to `localStorage` on every change, and is read back once on load.
+Verso is an npm workspaces monorepo with three packages:
+
+| Package           | What it is                                                          |
+| ----------------- | ------------------------------------------------------------------- |
+| `apps/web`        | The React app (Vite, Tailwind, React Router, TanStack Query)        |
+| `apps/api`        | The Hono API on Node: auth, data, and later every AI call           |
+| `packages/shared` | Zod schemas for every entity, the single definition of the contract |
 
 ```mermaid
-flowchart TD
-    A["TasksPage<br/><i>owns view state</i>"] --> B["Sidebar"]
-    A --> C["DayRail"]
-    A --> D["TaskList → TaskItem"]
-    A --> E["TaskDetail"]
-    A --> F["useTasks<br/><i>owns task state</i>"]
-    F --> G["lib/storage.ts<br/><b>the only localStorage caller</b>"]
-    D -.-> H["features/tasks/grouping.ts<br/><i>which list, which group</i>"]
-    C -.-> I["lib/time.ts<br/><i>pure formatting</i>"]
-    G --> J[("localStorage<br/>verso.tasks")]
+flowchart LR
+    subgraph Browser
+      W["apps/web<br/><i>TanStack Query cache</i>"]
+    end
+    subgraph "apps/api"
+      A["/api/auth/*<br/><b>Better Auth</b>"]
+      R["routes<br/><i>HTTP + validation</i>"]
+      S["services<br/><i>rules, scoped by userId</i>"]
+    end
+    P[("Postgres")]
+    M["Mailpit / email provider"]
+    W -- "same origin, session cookie" --> A
+    W -- "same origin, session cookie" --> R
+    R --> S --> P
+    A --> P
+    A --> M
+    SH["packages/shared<br/>Zod schemas"] -.-> W
+    SH -.-> R
 ```
 
-Solid arrows are data flowing down through props; dotted arrows are calls into
-pure modules.
+In development the browser only ever talks to Vite on `:5173`, which proxies
+`/api` to the API on `:3000`. In production one domain serves both. Either
+way the browser sees a single origin — which is what makes cookie auth simple.
 
-## Layering
+## The shared contract
 
-Four layers, with one rule each. The rules exist to keep the app from turning
-into a mesh where everything imports everything.
+`packages/shared` defines `Task`, `Project` and their inputs as Zod schemas.
+Both sides use the same schema for different jobs:
 
-| Layer         | Contains              | Rule                                               |
-| ------------- | --------------------- | -------------------------------------------------- |
-| `app/`        | Shell, router         | Every route is declared here, and only here        |
-| `features/`   | One folder per domain | A feature never imports another feature            |
-| `components/` | Shared UI             | No domain knowledge — must not know what a Task is |
-| `lib/`        | Pure functions        | No React: no hooks, no JSX, no component imports   |
+- **The API validates** every request body against it at runtime
+  (`validate('json', createTaskInput)`), and rejects unknown keys — inputs are
+  `z.strictObject`, so a client sending `done` instead of `completed` gets a
+  400 rather than having the field silently dropped.
+- **The web app parses** every response with it (`lib/api.ts`), and its
+  TypeScript types are inferred from it (`z.infer`). If a deployed API and a
+  cached old frontend ever disagree, the parse fails loudly at the boundary
+  instead of rendering `undefined` three components later.
 
-The `lib/` rule is the load-bearing one. Because `lib/time.ts` has no React in
-it, its functions can be called directly from a test with no renderer, no DOM
-and no setup. The same goes for `features/tasks/grouping.ts`, which is pure
-despite living in a feature folder — it is domain logic, so it belongs to the
-domain, but it takes data in and returns data out.
+The package is consumed as TypeScript source (`"exports": "./src/index.ts"`),
+with no build step: Vite and `tsx` both compile it on the fly.
 
-The `features/` rule is what would keep an `auth` feature from tangling with
-`tasks` later. Anything both need moves down a layer rather than sideways.
+**Why not Hono's typed RPC client (`hc`)?** It would give compile-time checking
+of route paths, but importing the API's route types into the web app pulls the
+API's source into the web typecheck — including Node's globals, so
+`process.env.SECRET` in a React component would typecheck. Seven routes are
+cheap to keep in sync by hand; runtime-validated responses are the stronger
+guarantee.
 
-## Persistence is a boundary, not a detail
+## The API: routes → services → db
 
-`src/lib/storage.ts` is the only module in the codebase that names
-`localStorage`. Nothing else — no component, no hook — touches it.
-
-```ts
-const TASKS_KEY = 'verso.tasks'
-
-export function getTasks(): Task[] { ... }
-export function saveTasks(tasks: Task[]): void { ... }
+```
+apps/api/src/
+  app.ts            the Hono app: mounts auth and routes, maps errors
+  index.ts          starts the server (kept apart so tests can import app)
+  env.ts            every env var, parsed with Zod at startup
+  auth/             Better Auth config + requireSession middleware
+  routes/           HTTP only: session, validation, status codes
+  services/         the rules; every function takes userId first
+  db/               Drizzle schema, client, migration runner
+  email/            mailer (Mailpit in dev, in-memory outbox in tests)
+  drizzle/          generated SQL migrations — committed, never hand-edited
 ```
 
-Two functions, both dumb: read the whole list, write the whole list. All the
-mutation logic — adding, toggling, patching — lives in `useTasks`, above the
-boundary.
+**Routes** check the session (`requireSession`), validate input, call one
+service function and choose a status code. Nothing else.
 
-This is deliberate and it is the single most important structural decision in
-the project. Swapping `localStorage` for a real backend means rewriting the
-bodies of these two functions and making them async. It does not mean touching a
-single component, because no component knows where data comes from.
+**Services** hold every rule — "a task's project must be yours", "subtasks are
+one level deep", "completing twice keeps the first completion time". They
+throw `NotFoundError` or `InvalidInputError` (`errors.ts`), and `app.onError`
+is the one place those become 404 and 400. Services know nothing about HTTP.
 
-### Corrupt data does not white-screen the app
+That separation is the reason logic lives in this API rather than in a
+backend-as-a-service: in Step 5 the AI chat's tools call **the same service
+functions** as the routes. "The AI marks a task done" and "the checkbox marks
+a task done" go through one code path, with one set of ownership checks.
 
-`JSON.parse` throws on malformed input. If it threw here, it would throw on
-every load, and the app would be permanently stuck on a blank screen with no way
-to recover short of opening devtools.
+### Ownership is enforced twice
 
-So the parse is wrapped, and the unreadable value is **moved aside rather than
-discarded** — copied to a second key, `verso.tasks.corrupt`, before starting
-from empty. The app recovers on its own, and the data is still there to be
-salvaged by hand.
+Every service function takes `userId` as its first argument and puts it in
+every `WHERE`. Another user's row is a **404, not a 403** — a 403 would confirm
+the id exists.
 
-### The one `as` cast
+The database backs this up. `tasks` has **composite foreign keys**:
+`(project_id, user_id) → projects(id, user_id)` and the same for `parent_id`.
+Postgres itself refuses to attach a task to another user's project or parent,
+even if a service check were ever missed. `src/db/schema.test.ts` tests these
+constraints directly, asserting the specific Postgres error code (`23503`).
 
-The project bans `as` casts. There is exactly one, and it is here:
+### Deletion
 
-```ts
-return Array.isArray(parsed) ? (parsed as Task[]) : []
-```
-
-`JSON.parse` returns `unknown`, so this is the one point where untyped data
-enters the type system — every boundary has one. The `Array.isArray` guard
-checks the shape as far as is worth checking, given that nothing but
-`saveTasks` ever writes to this key. A full runtime validator would be the
-correct answer for data crossing a network; for a key only this app writes, it
-would be ceremony.
-
-It is commented in place, so the next person to read it knows it was a decision
-and not an oversight.
+- Deleting a **user** cascades to their projects, tasks and sessions — account
+  deletion (a GDPR requirement) is one `DELETE`.
+- Deleting a **parent task** cascades to its subtasks.
+- Deleting a **project** that still has tasks is refused (`NO ACTION`). What
+  should happen to those tasks is undecided; the constraint keeps it from being
+  decided by accident. `NO ACTION` rather than `RESTRICT` because it is checked
+  at the end of the statement, so a user deletion that removes both the project
+  and its tasks in one cascade still succeeds.
 
 ## Data model
 
+Designed for all five roadmap steps; Step 1 created `projects`, `tasks` and
+Better Auth's tables. Later steps add tables rather than restructuring these.
+
 ```ts
 type Task = {
-  id: string
+  id: string // uuid
   userId: string
+  projectId: string | null
+  parentId: string | null // subtask of; one level deep
   title: string
   notes: string
-  projectId: string | null
-  scheduledAt: string | null // ISO 8601
+  kind: 'task' | 'assignment'
+  dueAt: string | null // the deadline
+  scheduledAt: string | null // when you plan to work on it
   estimateMinutes: number | null
-  done: boolean
+  completedAt: string | null // null while open
+  position: number // order among siblings
+  source: 'user' | 'ai_breakdown' | 'ai_chat'
   createdAt: string
   updatedAt: string
 }
 ```
 
-Two things here are forward-looking on purpose.
+The choices that aren't obvious:
 
-**`userId` exists although there is no auth.** It is always
-`CURRENT_USER_ID`, a placeholder constant in `src/lib/currentUser.ts`. Carrying
-an owner from the first commit means adding real accounts later changes one
-constant and the storage layer, rather than requiring a migration over every
-task ever created. The cost today is one unused field; the cost of adding it
-later would be much higher.
+- **`dueAt` and `scheduledAt` are separate.** When something is due and when
+  you'll work on it are different facts, and the gap between them is what
+  planning is. The AI daily plan (Step 4) is essentially choosing `scheduledAt`
+  values given `dueAt` values.
+- **`completedAt`, not `done`.** Same information plus _when_, which can't be
+  recovered later and which the daily plan needs. The client sends
+  `{ completed: true }` and the **server** stamps the time with its own clock,
+  the same way it owns `createdAt` and `updatedAt`.
+- **An assignment is a task** (`kind: 'assignment'`) and **a course is a
+  project** (`kind: 'course'`, with details in a future `courses` table). Every
+  task and project feature works for them with no special cases.
+- **Subtasks are tasks with a `parentId`.** AI breakdown (Step 2) inserts
+  ordinary tasks with `source: 'ai_breakdown'`; kept suggestions are real,
+  editable tasks.
+- **`source` is set by the server**, never the request body: the route a
+  request came through decides it.
+- **Timestamps are `timestamptz` in Postgres and ISO strings everywhere
+  else.** Postgres stores an instant; the client decides which timezone to show
+  it in. Better Auth's generated tables used plain `timestamp` and were edited
+  to match (see the header of `src/db/authSchema.ts`).
 
-**`projectId` exists although projects do not.** Same reasoning, though the
-feature itself is still unbuilt.
+## Auth
 
-**Dates are ISO 8601 strings in storage, never `Date` objects.** `Date` does not
-survive `JSON.stringify` round-tripping as a `Date` — it comes back a string —
-so storing one guarantees a type lie. Conversion happens at the edges: on the
-way into an input, and on the way back out.
+[Better Auth](https://better-auth.com) runs inside the API at `/api/auth/*` and
+stores users, sessions, accounts and verification tokens in our Postgres.
 
-## Updates go through one function
+- **Email and password**, minimum 10 characters, hashed by Better Auth
+  (scrypt).
+- **Email verification is required** before a session is issued. The emailed
+  link goes to `/api/auth/verify-email`, which signs the user in and redirects
+  to `/login`, which forwards a signed-in user to the app.
+- **Password reset** emails a link that redirects to `/reset-password?token=…`.
+  A reset **revokes every other session** — if the reset happened because the
+  password leaked, those sessions may not be the owner's.
+- **Sessions are httpOnly cookies**, not tokens in localStorage: page
+  JavaScript can't read them, so an XSS bug can't steal them, and they live in
+  the database, so they can be revoked instantly.
+- **Rate limiting** on the auth endpoints is stored in Postgres (so it survives
+  restarts and is shared across instances) and is on in production only.
+- **Sign-up can't be used to discover accounts**: signing up with an existing
+  address and requesting a reset for an unknown one both answer exactly like
+  the normal case.
 
-`useTasks` exposes `addTask`, `toggleDone`, `deleteTask`, and:
+`requireSession` (`src/auth/requireSession.ts`) turns the cookie into a
+`userId` on the Hono context, typed through `AuthedEnv`, or responds 401.
 
-```ts
-export type TaskPatch = Partial<
-  Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
->
+## The web app
 
-function updateTask(id: string, patch: TaskPatch) { ... }
-```
+### Server state lives in TanStack Query
 
-`Partial` makes every field optional, so a caller passes only what changed.
-`Omit` removes the four fields nothing outside the hook may set — identity and
-timestamps are the hook's to manage, and `updatedAt` is stamped on every patch.
+`useTasks` and `useProjects` no longer hold state — they read and write
+TanStack Query's cache. Every component calling `useTasks` reads the same
+cached list, which removes the old problem of each caller holding its own
+copy.
 
-The alternative was a setter per field (`setScheduledAt`, `setTitle`,
-`setNotes`, …), which is what existed first. Replacing them with one typed patch
-meant that adding in-place editing for title, notes and estimate later was
-wiring rather than three new functions.
+- **Updates and deletes are optimistic.** The cache changes immediately; if
+  the request fails, it rolls back to the snapshot taken just before.
+  `applyPatch.ts` mirrors what the server does with a patch, and is tested.
+- **Overlapping changes resync.** Rolling back one change can restore a
+  snapshot that predates another in-flight one, so once the _last_ in-flight
+  task mutation settles (counted via a shared `mutationKey`), the list is
+  refetched from the server.
+- **Creates are not optimistic**: the server assigns the id.
+- **A 401 anywhere** refetches the session, so `RequireAuth` redirects to
+  `/login` — wherever the 401 came from.
+- **Signing out clears the whole cache**, so the next person on the same
+  browser never sees a flash of the previous user's tasks.
+
+### Auth without cross-feature imports
+
+Features never import other features, but the tasks feature needs to sign
+out. `lib/authClient.ts` uses Better Auth's framework-agnostic client (no
+React), so it is allowed in `lib/` and any feature can call it. Session _state_
+is a TanStack Query entry under one shared key: `app/RequireAuth` reads it,
+sign-in and sign-out invalidate it.
+
+`RequireAuth` is a convenience, not the security boundary. The API refuses
+data requests without a session regardless of what the browser shows.
+
+### Layering
+
+| Layer         | Contains                        | Rule                                               |
+| ------------- | ------------------------------- | -------------------------------------------------- |
+| `app/`        | Shell, router, providers, guard | Every route is declared here, and only here        |
+| `features/`   | One folder per domain           | A feature never imports another feature            |
+| `components/` | Shared UI                       | No domain knowledge — must not know what a Task is |
+| `lib/`        | Pure functions, API clients     | No React: no hooks, no JSX, no component imports   |
 
 ## Lists are not mutually exclusive
 
-The rule most likely to look like a bug in the code, so it is worth stating: a
-task can appear in more than one list at once.
+The rule most likely to look like a bug: a task can appear in more than one
+list at once. Completing a task that is due today leaves it in **Today**,
+struck through, as well as putting it in **Completed**. Checking something off
+should not make it disappear out from under you.
 
-Completing a task that is due today leaves it in **Today**, struck through, as
-well as putting it in **Completed**. Checking something off should not make it
-disappear out from under you.
-
-This is why there are two separate functions in `grouping.ts` rather than one:
-
-- `classify(task, now)` returns the **single** list a task primarily belongs to,
-  where `done` always wins. It is used for the one-line label in the detail
-  panel, where only one answer fits.
-- `isInList(task, key, now)` answers **"should this show up here?"** for a given
-  list, and is free to say yes to several.
-
-Collapsing these into one function is the obvious-looking simplification and it
+So `grouping.ts` has two functions: `classify(task, now)` returns the
+**single** list a task primarily belongs to (for the detail panel's label),
+and `isInList(task, key, now)` answers "should this show up here?" and may say
+yes to several. Collapsing them is the obvious-looking simplification, and it
 is wrong.
 
-The boundary between Today and Upcoming is end-of-today, not `isSameDay` — an
-overdue task surfaces in Today rather than silently vanishing into the past.
+**Overdue** (`isOverdue`) means open and past `dueAt`. A completed task is
+never overdue, even if it was finished late. The row says "overdue" in brighter
+text — no red, no warning icon: noticed, not scolded.
 
 ## Time is local
 
-Every function in `lib/time.ts` reads local-time getters — `getHours`,
-`getDate`, `getFullYear` — because every one of them exists to put something in
-front of a person, and people are in a timezone.
+Every function in `lib/time.ts` reads local-time getters, because every one of
+them exists to put something in front of a person, and people are in a
+timezone. The consequences:
 
-The consequence matters for anyone writing tests here: **fixtures must be built
-from local components**, `new Date(2026, 8, 3, 14, 30)`, and never from a UTC
-string like `new Date('2026-09-03T14:30:00Z')`. A UTC literal produces a test
-that passes only in the timezone it was written in. The month argument is
-0-indexed, so `8` is September.
+- **Test fixtures** are built from local components,
+  `new Date(2026, 8, 3, 14, 30)`, never from a UTC string, or the test passes
+  only in the timezone it was written in. The month is 0-indexed.
+- `toISOString().slice(0, 10)` looks like a date key and is wrong near
+  midnight, because it is UTC. Use `toDateKey`.
+- The server stores instants and never needs to know the user's timezone —
+  until Step 4, when "today's plan" is computed server-side and the user gets a
+  `timezone` column.
 
-The same trap applies in application code: `toISOString().slice(0, 10)` looks
-like a reasonable way to get a date key and is wrong near midnight, because it
-is UTC.
-
-## The day rail, and the other documented exception
+## The day rail, and the one inline-style exception
 
 `DayRail` positions hour ticks, task marks and the now-line at percentages
-computed from task data at runtime. Tailwind generates classes only for values
-written literally in source, so it cannot express `left: 43.75%` when `43.75`
-came from a task's scheduled time.
-
-This is the one component permitted to use a `style` prop, and the reason is
-commented at the top of the file. Everything else in it — colour, size, spacing
-— still comes from tokens.
-
-Two behaviours are worth noting:
-
-- **The window widens.** The rail covers 06:00–22:00 by default, but stretches
-  out to whole hours when a task or the current time falls outside that. Before
-  this, a task at 23:30 was positioned at 109% — off the end of the rail and
-  invisible.
-- **The now-line moves** because `now` is held in state and re-set on a
-  30-second interval. A value computed during render would be frozen at mount.
+computed from task data at runtime. Tailwind only generates classes for values
+written literally in source, so it can't express `left: 43.75%`. This is the
+one component permitted a `style` prop; everything else in it still comes from
+tokens. The window covers 06:00–22:00 and widens to whole hours when a task or
+the current time falls outside it.
 
 ## Styling
 
-Tailwind v4, configured entirely in CSS. There is no `tailwind.config.js`; the
-design tokens live in an `@theme` block in `src/styles/index.css`:
+Tailwind v4, configured in CSS: the design tokens are an `@theme` block in
+`apps/web/src/styles/index.css`, and each token becomes utilities
+automatically (`--color-ink` → `bg-ink`, `text-ink`…). Components use tokens
+only; a raw hex is a bug, because one colour would then have two sources of
+truth. Near-black surfaces, bone-white text, no accent colour — white is the
+accent, used sparingly.
 
-```css
-@theme {
-  --color-ink: #09090b;
-  --color-bone: #edebe6;
-  --color-hairline: rgba(255, 255, 255, 0.075);
-  ...
-}
-```
+## Testing
 
-Tailwind turns each token into utilities automatically — `--color-ink` becomes
-`bg-ink`, `text-ink`, `border-ink`. Components reference tokens only; a raw hex
-or an arbitrary value like `bg-[#09090B]` in a component is a bug, because it
-means one colour has two sources of truth.
+Three suites, all run by `npm test` at the root:
 
-The palette is near-black surfaces and bone-white text with no accent colour.
-White _is_ the accent, used sparingly — primary buttons, the now-line, a checked
-checkbox. No gradients, no shadows.
+- **`apps/web`** — the pure modules: `lib/time.ts`, `grouping.ts` (list
+  membership, the midnight boundary, overdue), `applyPatch.ts` (what an
+  optimistic update does). No DOM needed.
+- **`packages/shared`** — the schemas' less obvious rules: trimming, strict
+  inputs, `completed` rather than `completedAt`, timestamps with offsets.
+- **`apps/api`** — integration tests against a real Postgres:
+  - `db/schema.test.ts` tests the database's own constraints.
+  - `auth/auth.test.ts` drives the real sign-up → email → verify and reset
+    flows; emails land in an in-memory outbox that tests read links out of.
+  - `routes/*.test.ts` cover 401s, ownership (user B gets 404 on user A's
+    rows), validation, and parse every response with the shared schemas.
 
-## Testing strategy
-
-Tests cover `lib/time.ts` and `features/tasks/grouping.ts` and nothing else.
-That is a deliberate line, not an unfinished job.
-
-Those two modules are pure, they hold all the logic that has actually broken,
-and they need no DOM — Vitest reads the existing `vite.config.ts`, and there is
-no jsdom and no separate config. The components are mostly layout and prop
-wiring, where a rendering test would mostly assert that JSX is still JSX.
-
-`describe`/`it`/`expect` are imported explicitly rather than enabled as globals,
-which is why `tsc -b` typechecks the test files with no `types` entry in
-`tsconfig`.
-
-The suite encodes the bugs that have already happened, which is the useful
-thing for it to do: undated tasks reaching a bucket that renders them,
-completed tasks staying in Today, and the midnight boundary between Today and
-Upcoming.
+The API tests call `app.request(...)` — the full middleware and routing stack,
+in memory, with no port. They use a separate `verso_test` database, which the
+global setup **drops and rebuilds from the migrations on every run** — a clean
+slate, and a standing proof that the migrations apply to an empty database.
+Test files run one at a time, since they share that database.
 
 ## Known limitations
 
-- **`useTasks` holds state in a plain `useState`.** Every caller gets its own
-  independent copy that overwrites the others on save. `TasksPage` is the only
-  caller today, so it works — but the next component that needs task data will
-  break it. This must be lifted into a context before projects or a command
-  palette can be built, and it is the first item flagged in [TODO.md](TODO.md).
-- **The layout is desktop-only.** A fixed three-column grid crushes below
-  roughly 900px.
-- **No accounts, no sync, no server.** Data lives in one browser.
+- **Sign-out is in the sidebar, which is hidden below the `md` breakpoint.** On
+  a phone there's no way to sign out yet. Mobile navigation is a design
+  decision that hasn't been made.
+- **Projects can be renamed through the API but not in the UI**, and can't be
+  deleted at all (see Deletion above).
+- **A failed update rolls back silently.** The change visibly reverts, but
+  nothing says why. Needs a small, consistent error surface.
+- **`formatWhen` omits the year**, so a deadline more than a year away reads
+  like this year's date.
+- **Not deployed.** No production Dockerfile, no real email provider, and
+  `advanced.ipAddress` for rate limiting behind a proxy isn't configured.
+- **`npm audit` reports four moderate issues** in the esbuild bundled inside
+  `drizzle-kit`. They concern esbuild's dev server, which drizzle-kit never
+  starts, and drizzle-kit is dev-only. `npm audit fix --force` would downgrade
+  drizzle-kit by a year; don't.

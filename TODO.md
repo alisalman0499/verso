@@ -4,26 +4,42 @@ Read `CLAUDE.md` first; it overrides anything here. The roadmap is five steps, b
 in order. Only the current step is broken down into commits; later steps are
 planned when they start.
 
-## Step 1 — Core tasks + login (in progress)
+## Step 1 — Core tasks + login (done)
 
 One commit per item. Build, lint, format check and tests pass before each.
 
 - [x] 0. Rewrite `CLAUDE.md` and this file for the new direction
-- [ ] 1. Move the app into an npm workspaces monorepo (`apps/web`), no behavior change
-- [ ] 2. `packages/shared`: Zod schemas for Task and Project, types inferred from them
-- [ ] 3. `apps/api` skeleton: Hono, health route, env validation, Docker Compose
+- [x] 1. Move the app into an npm workspaces monorepo (`apps/web`), no behavior change
+- [x] 2. `packages/shared`: Zod schemas for Task and Project, types inferred from them
+- [x] 3. `apps/api` skeleton: Hono, health route, env validation, Docker Compose
       (Postgres, Mailpit), Vite `/api` proxy
-- [ ] 4. Drizzle schema and first migration for `projects` and `tasks`
-- [ ] 5. Better Auth: email + password, verification, reset, rate limiting; session
+- [x] 4. Drizzle schema and first migration for `projects` and `tasks`
+- [x] 5. Better Auth: email + password, verification, reset, rate limiting; session
       middleware; dev email through Mailpit
-- [ ] 6. Tasks and projects API (routes → services → db, scoped by `userId`) with
+- [x] 6. Tasks and projects API (routes → services → db, scoped by `userId`) with
       integration tests for auth, ownership isolation and validation
-- [ ] 7. Web auth screens, `RequireAuth` guard, sign-out
-- [ ] 8. Replace localStorage with TanStack Query over the API; `done` → `completedAt`
-- [ ] 9. Due dates in the UI, with an overdue state
-- [ ] 10. Update `ARCHITECTURE.md` and `README.md`
+- [x] 7. Web auth screens, `RequireAuth` guard, sign-out
+- [x] 8. Replace localStorage with TanStack Query over the API; `done` → `completedAt`
+- [x] 9. Due dates in the UI, with an overdue state
+- [x] 10. Update `ARCHITECTURE.md` and `README.md`
 
 Out of scope for Step 1: subtask UI, AI, courses, billing, deployment, OAuth.
+
+### Follow-ups found during Step 1
+
+Small, and not blocking Step 2. Each needs a decision from the owner first
+where noted.
+
+- **Sign-out on mobile.** It lives in the sidebar, which is hidden below `md`.
+  Needs a decision on mobile navigation (new chrome in the design).
+- **Rename a project in the UI.** `PATCH /api/projects/:id` exists; the sidebar
+  has no control for it yet.
+- **Say why a change reverted.** A failed optimistic update rolls back with no
+  message. Needs one consistent, quiet error surface (design decision).
+- **`formatWhen` omits the year**, so a deadline more than a year out reads
+  like this year's date.
+- **A root `dev` script** that starts API and web together. Today it's two
+  terminals; one command needs a small dependency (e.g. `concurrently`).
 
 ## Step 2 — AI task breakdown
 

@@ -45,6 +45,20 @@ have Java/OOP fundamentals and are growing their TypeScript/React/backend skills
 
 **No Java anywhere.** Do not add dependencies without asking.
 
+## Commands
+
+```bash
+docker compose up -d     # Postgres + Mailpit (inbox at http://localhost:8025)
+npm run db:migrate       # apply migrations to the dev database
+npm run dev:api          # API on :3000
+npm run dev:web          # web on :5173, proxies /api to the API
+npm run build            # typecheck all workspaces, build web
+npm run lint
+npm run format:check     # `npm run format` to fix
+npm test                 # all suites; API tests need docker compose up
+npm run db:generate --workspace @verso/api   # after editing db/schema.ts
+```
+
 ## Hard rules
 
 - **All AI calls go through `apps/api`.** The API key never reaches the browser. Every AI
