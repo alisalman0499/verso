@@ -9,6 +9,9 @@ import {
   unique,
   uuid,
 } from 'drizzle-orm/pg-core'
+import { user } from './authSchema'
+
+export * from './authSchema'
 
 // Column names are spelled out in snake_case (the Postgres convention) while
 // the TypeScript properties stay camelCase. Drizzle maps between the two.
@@ -37,7 +40,9 @@ export const projects = pgTable(
   'projects',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    userId: text('user_id').notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     kind: projectKind('kind').notNull().default('general'),
     archivedAt: timestamptz('archived_at'),
@@ -55,7 +60,11 @@ export const tasks = pgTable(
   'tasks',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    userId: text('user_id').notNull(),
+    // Deleting a user deletes everything they own, in one statement. That is
+    // what account deletion (a GDPR requirement) relies on.
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
     projectId: uuid('project_id'),
     parentId: uuid('parent_id'),
     title: text('title').notNull(),

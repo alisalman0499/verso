@@ -9,6 +9,16 @@ const envSchema = z.object({
     .default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.url(),
+
+  // Signs session cookies and tokens. Generate with `openssl rand -base64 32`.
+  BETTER_AUTH_SECRET: z.string().min(32),
+  // The origin users see in their browser. In development that is Vite, which
+  // proxies /api here, so links in emails must point at Vite, not at the API.
+  BETTER_AUTH_URL: z.url(),
+
+  SMTP_HOST: z.string().min(1),
+  SMTP_PORT: z.coerce.number().int().positive(),
+  MAIL_FROM: z.string().min(1),
 })
 
 function parseEnv() {

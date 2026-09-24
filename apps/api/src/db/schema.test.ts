@@ -1,13 +1,16 @@
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { insertUser, resetDatabase } from '../../test/fixtures'
 import { db, pool } from './client'
-import { projects, tasks } from './schema'
+import { projects, tasks, user } from './schema'
 
 // These test the database's own rules, not application code: the
 // constraints hold even if a service forgets a check.
 
 beforeEach(async () => {
-  await pool.query('TRUNCATE tasks, projects CASCADE')
+  await resetDatabase()
+  await insertUser('alice')
+  await insertUser('bob')
 })
 
 // Postgres' error code for a foreign key violation. Asserting the code, not
@@ -96,5 +99,23 @@ describe('tasks table', () => {
     await expect(
       db.delete(projects).where(eq(projects.id, project.id)),
     ).rejects.toMatchObject(FOREIGN_KEY_VIOLATION)
+  })
+
+  it("deletes all of a user's projects and tasks along with the user", async () => {
+    const project = await createProject('alice')
+    const [parent] = await db
+      .insert(tasks)
+      .values({ userId: 'alice', title: 'Essay', projectId: project.id })
+      .returning()
+    await db
+      .insert(tasks)
+      .values({ userId: 'alice', title: 'Intro', parentId: parent.id })
+    await createProject('bob')
+
+    await db.delete(user).where(eq(user.id, 'alice'))
+
+    expect(await db.select().from(tasks)).toHaveLength(0)
+    const remaining = await db.select().from(projects)
+    expect(remaining.map((p) => p.userId)).toEqual(['bob'])
   })
 })

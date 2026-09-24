@@ -7,3 +7,6 @@ verso-task-manager.html
 
 # Hand-maintained project doc — not Prettier's to reformat.
 CLAUDE.md
+
+# Written by drizzle-kit on every `db:generate` — not Prettier's to reformat.
+apps/api/drizzle
