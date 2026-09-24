@@ -13,10 +13,10 @@ export const taskSource = z.enum(['user', 'ai_breakdown', 'ai_chat'])
 // title" is written once.
 const title = z.string().trim().min(1).max(500)
 const notes = z.string().max(20_000)
-const estimateMinutes = z
-  .int()
-  .min(0)
-  .max(7 * 24 * 60)
+// One week of work. Anything bigger is a project, not a task, and belongs
+// split into subtasks.
+export const MAX_ESTIMATE_MINUTES = 7 * 24 * 60
+const estimateMinutes = z.int().min(0).max(MAX_ESTIMATE_MINUTES)
 
 export const taskSchema = z.object({
   id: entityId,

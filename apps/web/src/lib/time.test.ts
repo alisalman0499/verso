@@ -4,6 +4,7 @@ import {
   formatWhen,
   fromDatetimeLocalValue,
   isSameDay,
+  parseDuration,
   toDateKey,
   toDatetimeLocalValue,
 } from './time'
@@ -19,13 +20,56 @@ describe('formatDuration', () => {
     expect(formatDuration(45)).toBe('45m')
   })
 
-  it('drops the decimal on whole hours', () => {
+  it('shows whole hours without minutes', () => {
     expect(formatDuration(60)).toBe('1h')
     expect(formatDuration(120)).toBe('2h')
   })
 
-  it('keeps one decimal on partial hours', () => {
-    expect(formatDuration(90)).toBe('1.5h')
+  it('shows hours and minutes on partial hours', () => {
+    expect(formatDuration(90)).toBe('1h 30m')
+    expect(formatDuration(735)).toBe('12h 15m')
+  })
+
+  it('shows zero as 0m', () => {
+    expect(formatDuration(0)).toBe('0m')
+  })
+})
+
+describe('parseDuration', () => {
+  it.each([
+    ['90', 90],
+    ['90m', 90],
+    ['90 min', 90],
+    ['45 minutes', 45],
+    ['2h', 120],
+    ['2 hours', 120],
+    ['1.5h', 90],
+    ['1,5 h', 90],
+    ['1h 30m', 90],
+    ['1h30', 90],
+    ['1 h 30 min', 90],
+    ['  1H 30M  ', 90],
+    ['0', 0],
+  ])('reads %j as %i minutes', (input, minutes) => {
+    expect(parseDuration(input)).toBe(minutes)
+  })
+
+  it('rounds fractional minutes', () => {
+    expect(parseDuration('0.1h')).toBe(6)
+    expect(parseDuration('12.6')).toBe(13)
+  })
+
+  it.each(['', 'soon', '-30', '1h 30m 10s', 'h', '1.5h 30m', '2d'])(
+    'rejects %j',
+    (input) => {
+      expect(parseDuration(input)).toBeNull()
+    },
+  )
+
+  it('reads back everything formatDuration writes', () => {
+    for (const minutes of [0, 5, 45, 60, 90, 135, 600, 10_080]) {
+      expect(parseDuration(formatDuration(minutes))).toBe(minutes)
+    }
   })
 })
 
