@@ -36,8 +36,11 @@ where noted.
   has no control for it yet.
 - **Say why a change reverted.** A failed optimistic update rolls back with no
   message. Needs one consistent, quiet error surface (design decision).
-- **`formatWhen` omits the year**, so a deadline more than a year out reads
-  like this year's date.
+- **`formatWhen` omits the year** in list rows, so a deadline more than a year
+  out reads like this year's date. (The side panel's full dates already
+  include it.)
+- **The day rail's "now" label is clipped on phones** late in the evening: it
+  sits right of the now-line and runs off the edge after about 21:00.
 - **A root `dev` script** that starts API and web together. Today it's two
   terminals; one command needs a small dependency (e.g. `concurrently`).
 

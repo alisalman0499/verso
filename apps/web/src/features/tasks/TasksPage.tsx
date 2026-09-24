@@ -22,17 +22,8 @@ import { useNow } from './useNow'
 import { useTasks } from './useTasks'
 
 export default function TasksPage() {
-  const {
-    tasks,
-    isLoading,
-    isError,
-    retry,
-    addTask,
-    addSubtask,
-    toggleDone,
-    deleteTask,
-    updateTask,
-  } = useTasks()
+  const { tasks, isLoading, isError, retry, addTask, toggleDone, deleteTask } =
+    useTasks()
   const { projects, addProject } = useProjects()
   // The open list comes from the URL (see viewFromSearchParams), not from
   // component state: leaving for a task's page and coming back, reloading,
@@ -201,9 +192,6 @@ export default function TasksPage() {
         projects={projects}
         onToggleDone={toggleDone}
         onDelete={handleDeleteTask}
-        onUpdateTask={updateTask}
-        onAddSubtask={addSubtask}
-        onDeleteSubtask={deleteTask}
         returnTo={returnTo}
         now={now}
       />

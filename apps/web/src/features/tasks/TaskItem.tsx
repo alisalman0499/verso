@@ -1,7 +1,7 @@
-import { Link } from 'react-router-dom'
 import Checkbox from '../../components/Checkbox'
 import { formatDuration, formatWhen } from '../../lib/time'
 import type { Task } from '../../types/task'
+import GoToTaskLink from './GoToTaskLink'
 import { isDone, isOverdue, type Progress } from './grouping'
 
 type TaskItemProps = {
@@ -63,8 +63,8 @@ export default function TaskItem({
           aria-controls={showSubtasks ? subtaskListId : undefined}
           className={
             isDone(task)
-              ? 'flex min-w-0 flex-1 items-center gap-1.5 text-left text-mute-2 line-through'
-              : 'flex min-w-0 flex-1 items-center gap-1.5 text-left text-bone'
+              ? 'flex min-w-16 flex-1 items-center gap-1.5 text-left text-mute-2 line-through'
+              : 'flex min-w-16 flex-1 items-center gap-1.5 text-left text-bone'
           }
         >
           {/* Space is kept on every row, arrow or not, so titles line up. */}
@@ -84,6 +84,17 @@ export default function TaskItem({
           </span>
           <span className="truncate">{task.title}</span>
         </button>
+
+        {/* Only on the task you've opened, so other rows stay quiet. This is
+            the way to the task's page, where editing happens. On narrow
+            screens the row has no room for it; it moves below (see there). */}
+        {isSelected && (
+          <GoToTaskLink
+            taskId={task.id}
+            returnTo={returnTo}
+            className="hidden sm:inline-flex"
+          />
+        )}
 
         {progress !== null && (
           <span
@@ -126,19 +137,13 @@ export default function TaskItem({
         <span className="min-w-[52px] flex-none text-right font-mono text-[11px] whitespace-nowrap text-mute">
           {task.scheduledAt !== null ? formatWhen(task.scheduledAt, now) : '—'}
         </span>
-
-        {/* Phones have no side panel, so each row links to the task's page.
-            Wide screens use the panel's "Open page" link instead. */}
-        <Link
-          to={`/tasks/${task.id}`}
-          state={{ from: returnTo }}
-          onClick={(event) => event.stopPropagation()}
-          aria-label={`Open "${task.title}"`}
-          className="-my-2 -mr-2 flex-none px-2 py-2 text-lg leading-none text-mute-2 hover:text-bone lg:hidden"
-        >
-          ›
-        </Link>
       </div>
+
+      {isSelected && (
+        <div className="mt-2.5 pl-[45px] sm:hidden">
+          <GoToTaskLink taskId={task.id} returnTo={returnTo} />
+        </div>
+      )}
 
       {showSubtasks && (
         // Indented so the checkboxes line up under the task's title: the
