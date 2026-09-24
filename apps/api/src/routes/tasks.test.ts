@@ -218,3 +218,76 @@ describe('DELETE /api/tasks/:id', () => {
     expect(res.status).toBe(404)
   })
 })
+
+describe('subtasks', () => {
+  async function listTasks(cookie: string) {
+    const res = await api('GET', '/api/tasks', { cookie })
+    return z.array(taskSchema).parse(await res.json())
+  }
+
+  it("inherit their parent's project", async () => {
+    const project = await createProject(alice, 'Thesis')
+    const parent = await createTask(alice, {
+      title: 'Essay',
+      projectId: project.id,
+    })
+    const child = await createTask(alice, {
+      title: 'Outline',
+      parentId: parent.id,
+    })
+    expect(child.projectId).toBe(project.id)
+  })
+
+  it('reject a project different from their parent', async () => {
+    const project = await createProject(alice, 'Thesis')
+    const parent = await createTask(alice, { title: 'Essay' })
+    const res = await api('POST', '/api/tasks', {
+      cookie: alice,
+      body: { title: 'Outline', parentId: parent.id, projectId: project.id },
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it('move with their parent to another project', async () => {
+    const project = await createProject(alice, 'Thesis')
+    const parent = await createTask(alice, { title: 'Essay' })
+    await createTask(alice, { title: 'Outline', parentId: parent.id })
+    await createTask(alice, { title: 'Intro', parentId: parent.id })
+
+    const res = await api('PATCH', `/api/tasks/${parent.id}`, {
+      cookie: alice,
+      body: { projectId: project.id },
+    })
+    expect(res.status).toBe(200)
+
+    const tasks = await listTasks(alice)
+    expect(tasks.map((t) => t.projectId)).toEqual([
+      project.id,
+      project.id,
+      project.id,
+    ])
+  })
+
+  it('cannot change project on their own', async () => {
+    const project = await createProject(alice, 'Thesis')
+    const parent = await createTask(alice, { title: 'Essay' })
+    const child = await createTask(alice, {
+      title: 'Outline',
+      parentId: parent.id,
+    })
+    const res = await api('PATCH', `/api/tasks/${child.id}`, {
+      cookie: alice,
+      body: { projectId: project.id },
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it('are deleted with their parent', async () => {
+    const parent = await createTask(alice, { title: 'Essay' })
+    await createTask(alice, { title: 'Outline', parentId: parent.id })
+
+    await api('DELETE', `/api/tasks/${parent.id}`, { cookie: alice })
+
+    expect(await listTasks(alice)).toEqual([])
+  })
+})
