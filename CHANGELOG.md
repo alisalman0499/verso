@@ -5,6 +5,14 @@ merged pull request, newest first. For the exact code changes see the git
 history; for the reasoning behind technical decisions see
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
+## 2026-09-25 · Tasks in the sidebar
+
+- **"Lists" is now "Tasks"**, and it's a row you can click: it opens every
+  task (what "All tasks" used to be). Today, Upcoming and Completed sit
+  under it, and the arrow folds them away. _Why:_ the name says what's
+  there, and "all your tasks" belongs at the top of the section rather
+  than as one more row in it.
+
 ## 2026-09-25 · Overview, and a page for every list
 
 - **Verso now opens on Overview**, the new first item in the sidebar, above
