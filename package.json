@@ -13,7 +13,8 @@
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "db:migrate": "npm run db:migrate --workspace @verso/api"
   },
   "devDependencies": {
     "prettier": "^3.9.6"
