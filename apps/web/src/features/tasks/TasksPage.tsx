@@ -1,20 +1,24 @@
 import { useEffect, useState } from 'react'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import DayRail from './DayRail'
 import {
   isDone,
   LISTS,
   progressByParent,
   projectIdForView,
+  searchParamsForView,
   subtasksOf,
   tasksForList,
   tasksForView,
   topLevelTasks,
+  viewFromSearchParams,
   type View,
 } from './grouping'
 import Sidebar from './Sidebar'
 import TaskDetail from './TaskDetail'
 import TaskList from './TaskList'
 import { useProjects } from './useProjects'
+import { useNow } from './useNow'
 import { useTasks } from './useTasks'
 
 export default function TasksPage() {
@@ -30,22 +34,25 @@ export default function TasksPage() {
     updateTask,
   } = useTasks()
   const { projects, addProject } = useProjects()
-  const [view, setView] = useState<View>({ type: 'list', key: 'today' })
+  // The open list comes from the URL (see viewFromSearchParams), not from
+  // component state: leaving for a task's page and coming back, reloading,
+  // or bookmarking all keep your place.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const location = useLocation()
+  // Where a task's page should send you back to: this list, as it is now.
+  const returnTo = location.pathname + location.search
+  const view = viewFromSearchParams(searchParams)
+  function setView(next: View) {
+    setSearchParams(searchParamsForView(next))
+  }
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   // The one task whose subtasks are folded open in the list, if any.
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null)
   const [isComposerOpen, setComposerOpen] = useState(false)
 
-  // The one clock for the whole page: held in state and ticked on a timer,
-  // rather than `new Date()` read fresh in every component that needs it.
-  // Reading it fresh looks harmless but means nothing re-renders on its own
-  // at midnight — the Today list would keep yesterday's contents until the
-  // user happened to click something.
-  const [now, setNow] = useState(() => new Date())
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30_000)
-    return () => clearInterval(id)
-  }, [])
+  // The one clock for the whole page, passed down rather than each component
+  // reading `new Date()` on its own (see useNow).
+  const now = useNow()
 
   // Everything below the lists works on top-level tasks: subtasks are shown
   // under their parent, never as rows, counts or marks of their own.
@@ -179,6 +186,7 @@ export default function TasksPage() {
           onSelectTask={handleSelectTask}
           expandedTaskId={expandedTaskId}
           expandedSubtasks={expandedSubtasks}
+          returnTo={returnTo}
           onToggleDone={toggleDone}
           isComposerOpen={isComposerOpen}
           onCloseComposer={() => setComposerOpen(false)}
@@ -196,6 +204,7 @@ export default function TasksPage() {
         onUpdateTask={updateTask}
         onAddSubtask={addSubtask}
         onDeleteSubtask={deleteTask}
+        returnTo={returnTo}
         now={now}
       />
     </div>

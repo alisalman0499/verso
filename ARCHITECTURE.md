@@ -210,6 +210,23 @@ copy.
 - **Signing out clears the whole cache**, so the next person on the same
   browser never sees a flash of the previous user's tasks.
 
+### Pages and the URL
+
+Two routes behind the sign-in guard: `/` (the lists) and `/tasks/:taskId`
+(one task on its own page). Both use the same `TaskEditor`; the side panel and
+the page are thin wrappers around it, and render it with `key={task.id}` so a
+different task always gets a fresh editor.
+
+- **The open list lives in the URL** (`?list=upcoming`, `?project=<id>`,
+  nothing for Today), read and written by `viewFromSearchParams` /
+  `searchParamsForView` in `grouping.ts`. Component state would reset every
+  time you left the page; the URL survives a trip to a task and back, a
+  reload, and a bookmark.
+- **Back links carry where you came from** as router state
+  (`{ from: '/?list=upcoming' }`). That state is untyped and could be crafted,
+  so `lib/returnPath.ts` parses it and only accepts paths inside the app —
+  `//evil.example` would otherwise be an open redirect.
+
 ### Auth without cross-feature imports
 
 Features never import other features, but the tasks feature needs to sign
