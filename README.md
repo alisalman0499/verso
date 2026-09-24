@@ -60,6 +60,19 @@ After changing `apps/api/src/db/schema.ts`, generate a migration with
 `npm run db:generate --workspace @verso/api`, read the SQL it wrote to
 `apps/api/drizzle/`, and commit it.
 
+### If the API tests can't find `verso_test`
+
+`docker/postgres/init.sql` creates the test database, but Postgres only runs it
+when its data volume is empty. If the volume existed before that file did,
+create the database by hand:
+
+```bash
+docker compose exec postgres psql -U verso -c 'CREATE DATABASE verso_test'
+```
+
+Or start over with `docker compose down -v` — which also deletes your
+development data.
+
 ## Layout
 
 ```
