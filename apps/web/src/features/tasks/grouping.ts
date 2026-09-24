@@ -79,28 +79,41 @@ export function tasksForList(tasks: Task[], key: ListKey, now: Date): Task[] {
 export type View =
   { type: 'list'; key: ListKey } | { type: 'project'; projectId: string }
 
-// The open view lives in the URL's query string, so it survives a reload,
-// a bookmark, and a trip to a task's page and back:
-//   (nothing)        Today
-//   ?list=upcoming   one of the fixed lists
-//   ?project=<id>    a project
-// Anything unrecognised falls back to Today rather than an empty screen.
-export function viewFromSearchParams(params: URLSearchParams): View {
+// The open view lives in the URL's path, so it survives a reload, a
+// bookmark, and a trip to a task's page and back:
+//   /lists/upcoming   one of the fixed lists
+//   /projects/<id>    a project
+// `/` is the Overview, not a view; see the router.
+export function pathForView(view: View): string {
+  if (view.type === 'project') {
+    return `/projects/${encodeURIComponent(view.projectId)}`
+  }
+  return `/lists/${view.key}`
+}
+
+// The reverse, from the route's params. An unrecognised list falls back to
+// Today rather than an empty screen.
+export function viewFromRouteParams(params: {
+  listKey?: string
+  projectId?: string
+}): View {
+  if (params.projectId !== undefined && params.projectId !== '') {
+    return { type: 'project', projectId: params.projectId }
+  }
+  const list = LISTS.find((candidate) => candidate.key === params.listKey)
+  return { type: 'list', key: list?.key ?? 'today' }
+}
+
+// Views used to live in the query string (`/?list=upcoming`,
+// `/?project=<id>`). Old bookmarks still carry those, so the Overview reads
+// them once and redirects. Null when the query names no view.
+export function viewFromLegacySearch(params: URLSearchParams): View | null {
   const projectId = params.get('project')
   if (projectId !== null && projectId !== '') {
     return { type: 'project', projectId }
   }
   const list = LISTS.find((candidate) => candidate.key === params.get('list'))
-  return { type: 'list', key: list?.key ?? 'today' }
-}
-
-export function searchParamsForView(view: View): URLSearchParams {
-  if (view.type === 'project') {
-    return new URLSearchParams({ project: view.projectId })
-  }
-  // Today is the default, so it gets the clean URL.
-  if (view.key === 'today') return new URLSearchParams()
-  return new URLSearchParams({ list: view.key })
+  return list === undefined ? null : { type: 'list', key: list.key }
 }
 
 export function tasksForView(tasks: Task[], view: View, now: Date): Task[] {

@@ -18,7 +18,12 @@ export const router = createBrowserRouter([
     // RequireAuth has confirmed a session.
     element: <RequireAuth />,
     children: [
-      { path: '/', element: <TasksPage section="lists" /> },
+      { path: '/', element: <TasksPage section="overview" /> },
+      { path: '/lists/:listKey', element: <TasksPage section="lists" /> },
+      {
+        path: '/projects/:projectId',
+        element: <TasksPage section="lists" />,
+      },
       { path: '/calendar', element: <TasksPage section="calendar" /> },
       { path: '/tasks/:taskId', element: <TaskPage /> },
     ],

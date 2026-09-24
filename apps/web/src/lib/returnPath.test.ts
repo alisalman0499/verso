@@ -3,7 +3,7 @@ import { returnPathFrom } from './returnPath'
 
 describe('returnPathFrom', () => {
   it('returns the path a link came from', () => {
-    expect(returnPathFrom({ from: '/?list=upcoming' })).toBe('/?list=upcoming')
+    expect(returnPathFrom({ from: '/lists/upcoming' })).toBe('/lists/upcoming')
     expect(returnPathFrom({ from: '/' })).toBe('/')
   })
 
@@ -20,6 +20,6 @@ describe('returnPathFrom', () => {
   })
 
   it('uses the given fallback', () => {
-    expect(returnPathFrom(undefined, '/?list=all')).toBe('/?list=all')
+    expect(returnPathFrom(undefined, '/lists/all')).toBe('/lists/all')
   })
 })

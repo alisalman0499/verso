@@ -7,7 +7,7 @@ import { z } from 'zod'
 const internalPath = z.string().regex(/^\/(?!\/)/)
 
 // Where a page's Back link should go. Links into a page pass the URL they
-// came from as router state ({ from: '/?list=upcoming' }); that state is
+// came from as router state ({ from: '/lists/upcoming' }); that state is
 // untyped, so it is parsed rather than trusted.
 export function returnPathFrom(state: unknown, fallback = '/'): string {
   const parsed = z.object({ from: internalPath }).safeParse(state)
