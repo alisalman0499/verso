@@ -9,6 +9,12 @@ export function isDone(task: Task): boolean {
   return task.completedAt !== null
 }
 
+// Past its deadline and still open. A finished task is never overdue, even
+// if it was finished late — there's nothing left to act on.
+export function isOverdue(task: Task, now: Date): boolean {
+  return !isDone(task) && task.dueAt !== null && new Date(task.dueAt) < now
+}
+
 // 'all' isn't something classify() ever returns — it's not a bucket a task
 // belongs to, it's a view that shows every task regardless of bucket.
 export type ListKey = 'today' | 'upcoming' | 'done' | 'all'

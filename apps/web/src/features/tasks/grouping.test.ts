@@ -4,6 +4,7 @@ import {
   groupToday,
   groupUpcoming,
   isInList,
+  isOverdue,
   openTaskCount,
   projectIdForView,
   tasksForList,
@@ -269,5 +270,26 @@ describe('groupUpcoming', () => {
     const groups = groupUpcoming(tasks)
     expect(groups).toHaveLength(1)
     expect(groups[0].items.map((task) => task.id)).toEqual(['a', 'b'])
+  })
+})
+
+describe('isOverdue', () => {
+  it('is true for an open task whose deadline has passed', () => {
+    const task = makeTask({ dueAt: at(2026, 8, 3, 8, 59) })
+    expect(isOverdue(task, NOW)).toBe(true)
+  })
+
+  it('is false while the deadline is still ahead, even later today', () => {
+    const task = makeTask({ dueAt: at(2026, 8, 3, 9, 1) })
+    expect(isOverdue(task, NOW)).toBe(false)
+  })
+
+  it('is false for a task with no deadline', () => {
+    expect(isOverdue(makeTask({ dueAt: null }), NOW)).toBe(false)
+  })
+
+  it('is false once the task is done, even if it was done late', () => {
+    const task = makeTask({ dueAt: at(2026, 8, 1, 12), completedAt: DONE_AT })
+    expect(isOverdue(task, NOW)).toBe(false)
   })
 })

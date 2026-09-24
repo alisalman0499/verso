@@ -117,6 +117,38 @@ export default function TaskDetail({
         <dl className="mt-6 border-t border-hairline">
           <div className="flex justify-between gap-4 border-b border-hairline py-3">
             <dt className="font-mono text-[10px] tracking-[0.14em] text-mute-2 uppercase">
+              Due
+            </dt>
+            <dd className="flex items-center justify-end gap-2 text-right text-sm text-bone">
+              <input
+                type="datetime-local"
+                aria-label="Due"
+                value={
+                  selected.dueAt !== null
+                    ? toDatetimeLocalValue(selected.dueAt)
+                    : ''
+                }
+                onChange={(event) => {
+                  const value = event.target.value
+                  onUpdateTask(selected.id, {
+                    dueAt: value === '' ? null : fromDatetimeLocalValue(value),
+                  })
+                }}
+                className="bg-transparent text-right text-sm text-bone outline-none [color-scheme:dark]"
+              />
+              {selected.dueAt !== null && (
+                <button
+                  type="button"
+                  onClick={() => onUpdateTask(selected.id, { dueAt: null })}
+                  className="font-mono text-[10px] text-mute-2 hover:text-bone"
+                >
+                  clear
+                </button>
+              )}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-4 border-b border-hairline py-3">
+            <dt className="font-mono text-[10px] tracking-[0.14em] text-mute-2 uppercase">
               When
             </dt>
             <dd className="flex items-center justify-end gap-2 text-right text-sm text-bone">

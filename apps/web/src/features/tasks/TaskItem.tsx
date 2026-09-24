@@ -1,6 +1,6 @@
 import { formatDuration, formatWhen } from '../../lib/time'
 import type { Task } from '../../types/task'
-import { isDone } from './grouping'
+import { isDone, isOverdue } from './grouping'
 
 type TaskItemProps = {
   task: Task
@@ -72,6 +72,22 @@ export default function TaskItem({
       {task.estimateMinutes !== null && (
         <span className="flex-none font-mono text-[10px] text-mute-2">
           {formatDuration(task.estimateMinutes)}
+        </span>
+      )}
+
+      {task.dueAt !== null && !isDone(task) && (
+        // Overdue reads brighter, not louder: no red, no warning icon. The
+        // point is to be noticed, not to make the list feel like a scolding.
+        <span
+          className={
+            isOverdue(task, now)
+              ? 'flex-none font-mono text-[10px] whitespace-nowrap text-bone'
+              : 'flex-none font-mono text-[10px] whitespace-nowrap text-mute-2'
+          }
+        >
+          {isOverdue(task, now)
+            ? 'overdue'
+            : `due ${formatWhen(task.dueAt, now)}`}
         </span>
       )}
 
