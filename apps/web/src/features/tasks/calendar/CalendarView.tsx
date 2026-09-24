@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { toDateKey } from '../../../lib/time'
 import type { Task } from '../../../types/task'
 import type { Progress } from '../grouping'
 import {
@@ -12,6 +13,7 @@ import {
   type CalendarPosition,
 } from './calendarLayout'
 import MonthView from './MonthView'
+import WeekAgenda from './WeekAgenda'
 import WeekView from './WeekView'
 
 const MODES: { key: CalendarMode; label: string }[] = [
@@ -132,19 +134,31 @@ export default function CalendarView({
       </div>
 
       {position.mode === 'week' ? (
-        <WeekView
-          date={position.date}
-          tasks={tasks}
-          lengthOf={(task) =>
-            plannedMinutes(task, progress.get(task.id) ?? null)
-          }
-          selectedTaskId={selectedTaskId}
-          onOpenTask={onOpenTask}
-          onAddTask={onAddTask}
-          now={now}
-        />
+        <>
+          {/* Both are rendered and CSS picks one by screen width: the grid
+              from `sm` up, the list on phones. */}
+          <WeekAgenda
+            date={position.date}
+            tasks={tasks}
+            onOpenTask={onOpenTask}
+            now={now}
+          />
+          <WeekView
+            date={position.date}
+            tasks={tasks}
+            lengthOf={(task) =>
+              plannedMinutes(task, progress.get(task.id) ?? null)
+            }
+            selectedTaskId={selectedTaskId}
+            onOpenTask={onOpenTask}
+            onAddTask={onAddTask}
+            now={now}
+          />
+        </>
       ) : (
         <MonthView
+          // A fresh day selection (on phones) for every month shown.
+          key={toDateKey(position.date)}
           date={position.date}
           tasks={tasks}
           selectedTaskId={selectedTaskId}

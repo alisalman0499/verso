@@ -80,7 +80,8 @@ export default function WeekView({
   const columns = 'grid grid-cols-[2.75rem_repeat(7,minmax(0,1fr))]'
 
   return (
-    <div className="flex-1 overflow-y-auto px-5 pb-20 lg:px-11">
+    // Below `sm` the grid is swapped for WeekAgenda (see CalendarView).
+    <div className="hidden flex-1 overflow-y-auto px-5 pb-20 sm:block lg:px-11">
       {/* The day names stay in view while the hours scroll under them. */}
       <div className={`${columns} sticky top-0 z-10 bg-ink pt-6`}>
         <span />

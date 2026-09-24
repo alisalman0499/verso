@@ -28,7 +28,8 @@ export default function MonthEntry({
       onClick={() => onOpen(task.id)}
       aria-label={`${label}${done ? ', done' : ''}`}
       className={[
-        'flex min-w-0 items-baseline gap-1.5 rounded-[4px] border px-1.5 py-0.5 text-left text-[11px]',
+        // Phones show dots instead (see MonthView).
+        'hidden min-w-0 items-baseline gap-1.5 rounded-[4px] border px-1.5 py-0.5 text-left text-[11px] sm:flex',
         kind === 'due' ? 'border-pure/16' : 'border-transparent',
         isSelected ? 'bg-ink-4' : 'hover:bg-ink-3',
       ].join(' ')}
