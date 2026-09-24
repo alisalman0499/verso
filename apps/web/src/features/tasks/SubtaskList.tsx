@@ -1,5 +1,6 @@
 import { MAX_ESTIMATE_MINUTES } from '@verso/shared'
 import { useState, type KeyboardEvent } from 'react'
+import Checkbox from '../../components/Checkbox'
 import { splitTrailingDuration } from '../../lib/time'
 import type { Task } from '../../types/task'
 import { isDone } from './grouping'
@@ -67,34 +68,16 @@ export default function SubtaskList({
               key={subtask.id}
               className="group flex items-center gap-2.5 py-1.5"
             >
-              <button
-                type="button"
-                onClick={() => onToggleDone(subtask.id)}
-                aria-label={
+              <Checkbox
+                size="sm"
+                checked={done}
+                onToggle={() => onToggleDone(subtask.id)}
+                label={
                   done
                     ? `Mark "${subtask.title}" not done`
                     : `Mark "${subtask.title}" done`
                 }
-                className={
-                  done
-                    ? 'flex h-[15px] w-[15px] flex-none items-center justify-center rounded-[4px] border border-pure bg-pure'
-                    : 'flex h-[15px] w-[15px] flex-none items-center justify-center rounded-[4px] border border-pure/16 hover:border-pure/36'
-                }
-              >
-                {done && (
-                  <svg
-                    viewBox="0 0 10 10"
-                    className="h-[8px] w-[8px] fill-none stroke-ink"
-                  >
-                    <path
-                      d="M1.6 5.2 3.9 7.4 8.4 2.6"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                )}
-              </button>
+              />
               <span
                 className={
                   done

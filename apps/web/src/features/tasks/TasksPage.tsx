@@ -32,6 +32,8 @@ export default function TasksPage() {
   const { projects, addProject } = useProjects()
   const [view, setView] = useState<View>({ type: 'list', key: 'today' })
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  // The one task whose subtasks are folded open in the list, if any.
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null)
   const [isComposerOpen, setComposerOpen] = useState(false)
 
   // The one clock for the whole page: held in state and ticked on a timer,
@@ -58,6 +60,8 @@ export default function TasksPage() {
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null
   const selectedSubtasks =
     selectedTask === null ? [] : subtasksOf(tasks, selectedTask.id)
+  const expandedSubtasks =
+    expandedTaskId === null ? [] : subtasksOf(tasks, expandedTaskId)
   const isTodayView = view.type === 'list' && view.key === 'today'
 
   // The tally counts exactly what the Today list shows, so the numbers in
@@ -88,6 +92,18 @@ export default function TasksPage() {
     // here — TaskList stays unaware that projects exist at all.
     addTask(title, scheduledAt, projectIdForView(view))
     setComposerOpen(false)
+  }
+
+  // Clicking a task selects it and folds its subtasks open, closing any
+  // other. Clicking the task that's already selected folds it shut, or open
+  // again.
+  function handleSelectTask(id: string) {
+    if (id === selectedTaskId) {
+      setExpandedTaskId((current) => (current === id ? null : id))
+      return
+    }
+    setSelectedTaskId(id)
+    setExpandedTaskId(id)
   }
 
   function handleDeleteTask(id: string) {
@@ -160,7 +176,9 @@ export default function TasksPage() {
           loadState={isLoading ? 'loading' : isError ? 'error' : 'ready'}
           onRetryLoad={retry}
           selectedTaskId={selectedTaskId}
-          onSelectTask={setSelectedTaskId}
+          onSelectTask={handleSelectTask}
+          expandedTaskId={expandedTaskId}
+          expandedSubtasks={expandedSubtasks}
           onToggleDone={toggleDone}
           isComposerOpen={isComposerOpen}
           onCloseComposer={() => setComposerOpen(false)}
