@@ -259,7 +259,7 @@ describe('dayBlocks', () => {
 
 describe('hourRange', () => {
   it('shows 06–22 by default', () => {
-    expect(hourRange([], null)).toEqual({ start: 360, end: 1320 })
+    expect(hourRange([])).toEqual({ start: 360, end: 1320 })
   })
 
   it('stretches to whole hours around early and late tasks', () => {
@@ -268,11 +268,7 @@ describe('hourRange', () => {
       DAY,
       byEstimate,
     )
-    expect(hourRange(blocks, null)).toEqual({ start: 300, end: 1440 })
-  })
-
-  it('stretches to fit the now-line', () => {
-    expect(hourRange([], 23 * 60 + 10)).toEqual({ start: 360, end: 1440 })
+    expect(hourRange(blocks)).toEqual({ start: 300, end: 1440 })
   })
 })
 

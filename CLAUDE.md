@@ -99,9 +99,9 @@ npm run db:generate --workspace @verso/api   # after editing db/schema.ts
   export. Everything else `camelCase.ts`.
 - No `any`. No `as` casts to silence the compiler; if types fight you, the model is
   wrong, so say so. (Validate with Zod instead of casting.)
-- Tailwind only: no inline `style` (sole exception: `DayRail.tsx` runtime percentages),
-  no CSS files. Theme tokens only (`bg-ink`, `text-bone`, `border-hairline`…), never raw
-  hex or arbitrary colour values.
+- Tailwind only: no inline `style` (sole exceptions: runtime positions in `DayRail.tsx`
+  and the calendar grid, `features/tasks/calendar/`), no CSS files. Theme tokens only
+  (`bg-ink`, `text-bone`, `border-hairline`…), never raw hex or arbitrary colour values.
 - Dates are ISO 8601 strings at every boundary and `timestamptz` in Postgres. Time helpers
   use local-time getters; build test fixtures as `new Date(2026, 8, 3, 14, 30)`, never
   from UTC strings.

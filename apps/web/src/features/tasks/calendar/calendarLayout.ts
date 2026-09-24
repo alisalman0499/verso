@@ -184,24 +184,17 @@ const DEFAULT_START = 6 * 60
 const DEFAULT_END = 22 * 60
 
 // The hours the week grid shows: 06:00–22:00, stretched to whole hours to
-// fit any block (or the now-line) outside that, as the day rail does.
-export function hourRange(
-  blocks: Block[],
-  nowMinutes: number | null,
-): { start: number; end: number } {
-  const starts = blocks.map((block) => block.start)
-  const ends = blocks.map((block) => block.end)
-  if (nowMinutes !== null) {
-    starts.push(nowMinutes)
-    ends.push(nowMinutes)
-  }
+// fit any block outside that, as the day rail does. The current time
+// doesn't stretch it: at 01:00, a grid of empty night hours helps nobody;
+// the now-line is simply left out until the time is back on the grid.
+export function hourRange(blocks: Block[]): { start: number; end: number } {
   const start = Math.min(
     DEFAULT_START,
-    ...starts.map((minutes) => Math.floor(minutes / 60) * 60),
+    ...blocks.map((block) => Math.floor(block.start / 60) * 60),
   )
   const end = Math.max(
     DEFAULT_END,
-    ...ends.map((minutes) => Math.ceil(minutes / 60) * 60),
+    ...blocks.map((block) => Math.ceil(block.end / 60) * 60),
   )
   return { start, end: Math.min(end, DAY_END) }
 }
@@ -236,4 +229,12 @@ export function deadlinesOn(tasks: Task[], day: Date): Task[] {
   return entriesOn(tasks, day)
     .filter((entry) => entry.kind === 'due')
     .map((entry) => entry.task)
+}
+
+// How far down a time column a time of day sits, as a CSS percentage.
+// Blocks, hour lines and the now-line are placed with it through `style`:
+// like the day rail's marks, the values come from task data at runtime,
+// and Tailwind can only make classes for values written in the source.
+export function percentDown(minutes: number, start: number, end: number) {
+  return `${((minutes - start) / (end - start)) * 100}%`
 }
