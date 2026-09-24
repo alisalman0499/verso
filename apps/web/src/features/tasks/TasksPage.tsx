@@ -173,7 +173,7 @@ export default function TasksPage({ section }: { section: Section }) {
                   <div className="font-mono text-[10px] tracking-[0.16em] text-mute uppercase">
                     {isTodayView
                       ? now.toLocaleDateString('en-GB', { weekday: 'long' })
-                      : 'List'}
+                      : 'Tasks'}
                   </div>
                   <h2 className="mt-1.5 font-serif text-[clamp(34px,4.2vw,52px)] leading-none tracking-tight text-pure">
                     {isTodayView ? (
