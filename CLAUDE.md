@@ -1,118 +1,91 @@
 # Verso
 
-A web-based task manager. Personal project, built to a high standard.
+A planning and focus tool for students with ADHD, built as a SaaS. It works for any
+kind of task, with a student layer on top (courses, assignments, deadlines).
 
-## Context for you (Claude)
+**Framing: planning and focus only. Verso is not a medical or treatment tool.** Never
+describe it, in UI copy, docs, or AI prompts, as diagnosing, treating, or managing
+ADHD or its symptoms. "Helps you plan your week", never "manages your ADHD".
 
-The owner is a first-year datamatiker student with Java/OOP fundamentals and
-limited JavaScript, React, and CSS experience. They are learning to direct
-agentic development, not to type every line themselves.
+## Roadmap (build in this order)
 
-This means:
+1. Core tasks + login: tasks and projects with due dates, create/edit/complete, accounts
+2. AI task breakdown (headline feature): AI suggests subtasks; user keeps/edits/discards
+3. Student layer: courses, assignments with deadlines, upcoming overview
+4. AI daily plan: AI proposes today's plan from deadlines and open tasks
+5. Chat with tasks: chat about one or more tasks; the AI reads/modifies them via tools
 
-- **Explain your choices.** When you introduce a pattern, a library, or a
-  language feature they may not know, say what it does and why you reached for
-  it. One or two sentences, inline — not a tutorial.
-- **Do not silently make architectural decisions.** If a task requires a
-  decision not covered by this file, stop and ask.
-- **Prefer the boring, readable solution** over the clever one. Code that has to
-  be explained twice is the wrong code for this project.
-- **Never say a change is complete without saying what you actually changed.**
+Current status and next items live in `TODO.md`.
+
+## The owner, and how to work with them
+
+The owner is a student (datamatiker) who uses Verso for all their own tasks. They
+have Java/OOP fundamentals and are growing their TypeScript/React/backend skills.
+**Learning matters more than speed.**
+
+- **Explain architecture decisions and non-obvious choices as you make them**: what the
+  pattern or library does, and why it was chosen over the alternative. Concise, inline.
+- **Don't dumb solutions down.** Use the idiomatic approach for the stack and explain it,
+  rather than a simplified version that would need replacing later.
+- **Ask clarifying questions freely** before assuming. Never make an architectural or
+  product decision silently.
+- **Plan before editing** anything beyond a one-file change; wait for approval.
+- Never say something is done without saying what changed and how it was verified.
 
 ## Stack
 
-- Vite + React + TypeScript
-- Tailwind CSS
-- React Router
-- Local storage for persistence (Supabase planned later — do not add it yet)
+- **Monorepo** (npm workspaces): `apps/web`, `apps/api`, `packages/shared`
+- **Web:** Vite, React, TypeScript, Tailwind v4, React Router, TanStack Query
+- **API:** Node + Hono, Zod validation, Drizzle ORM, PostgreSQL
+- **Auth:** Better Auth (email+password, verification, reset), httpOnly cookie sessions,
+  same-origin (`/api` proxied in dev)
+- **Shared:** Zod schemas in `packages/shared` are the single definition of every entity
+- **Tests:** Vitest (pure modules in web; integration tests against Postgres in api)
+- **Docker:** Compose for dev services (Postgres, Mailpit); Dockerfile for deploy
 
-Do not add dependencies without asking. Do not introduce Next.js, Redux,
-styled-components, or a component library. Docker is deliberately out of scope
-for now.
+**No Java anywhere.** Do not add dependencies without asking.
 
-## Commands
+## Hard rules
 
-```bash
-npm run dev       # dev server
-npm run build     # production build (must pass before any commit)
-npm run lint      # ESLint
-```
+- **All AI calls go through `apps/api`.** The API key never reaches the browser. Every AI
+  call passes the per-user quota check and records usage in `ai_usage`.
+- **All data access is scoped by `userId`** in the service layer. Another user's row is a
+  404, never a 403.
+- **Routes → services → db.** Routes do HTTP and validation only. Business rules live in
+  services. AI tools call the same services as routes; never a second path.
+- **Validate at every boundary** with the shared Zod schemas: request bodies, env vars,
+  AI output.
+- Never commit `.env` files or keys. Never hand-edit `package-lock.json`.
+- EU users: keep GDPR in mind (EU hosting, account deletion, data export).
 
-## Structure
+## Web conventions
 
-```
-src/
-  app/          shell, router, auth guard
-  components/   shared UI — no domain knowledge
-  features/     one folder per domain (auth, tasks)
-  lib/          pure functions, no React
-  styles/
-```
-
-### Structural rules
-
-1. **Features never import from other features.** If `auth` and `tasks` both
-   need something, lift it to `components/` or `lib/`.
-2. **`components/` stays domain-agnostic.** A component that knows what a Task
-   is belongs in `features/tasks/`.
-3. **`lib/` contains no React.** No hooks, no JSX, no component imports.
-4. **All routes are declared in `app/router.tsx`.** Never register a route
-   anywhere else.
-
-## Conventions
-
-- Components: `PascalCase.tsx`, one component per file, default export.
-- Hooks: `useThing.ts`, named export.
-- Everything else: `camelCase.ts`.
-- Types live in the feature's `types.ts`; shared types in `src/types/`.
-- No `any`. No `as` casts to silence the compiler. If types fight you, the model
-  is wrong — say so rather than working around it.
-- No inline styles and no separate CSS files. Tailwind only.
-- Use the theme tokens (`bg-ink`, `text-bone`, `border-hairline`), never raw hex
-  or arbitrary values like `bg-[#09090B]`.
-
-## Data model
-
-Every task carries an owner from day one, even though there is no server yet.
-
-```ts
-type Task = {
-  id: string;
-  userId: string;
-  title: string;
-  notes: string;
-  projectId: string | null;
-  scheduledAt: string | null;  // ISO 8601
-  estimateMinutes: number | null;
-  done: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
-```
-
-Dates are ISO 8601 strings in storage, converted at the edges. Never store a
-`Date` object.
-
-## Persistence
-
-All reads and writes go through `lib/storage.ts`. No component or hook touches
-`localStorage` directly. This boundary is what makes the Supabase migration a
-contained change — do not breach it.
+- `src/app/` shell, router, providers, auth guard. **All routes are declared in
+  `app/router.tsx`.**
+- `src/features/<domain>/`: **features never import other features.** Shared things
+  move down to `components/` (no domain knowledge) or `lib/` (**no React**).
+- Components `PascalCase.tsx`, one per file, default export. Hooks `useThing.ts`, named
+  export. Everything else `camelCase.ts`.
+- No `any`. No `as` casts to silence the compiler; if types fight you, the model is
+  wrong, so say so. (Validate with Zod instead of casting.)
+- Tailwind only: no inline `style` (sole exception: `DayRail.tsx` runtime percentages),
+  no CSS files. Theme tokens only (`bg-ink`, `text-bone`, `border-hairline`…), never raw
+  hex or arbitrary colour values.
+- Dates are ISO 8601 strings at every boundary and `timestamptz` in Postgres. Time helpers
+  use local-time getters; build test fixtures as `new Date(2026, 8, 3, 14, 30)`, never
+  from UTC strings.
 
 ## Design
 
-The visual design is settled: near-black surfaces, bone-white text, no accent
-colour. White is the accent and is used sparingly — primary buttons, the
-now-line, checked checkboxes. Do not introduce colour, gradients, or shadows.
-Do not redesign components while implementing features.
+Current language: near-black surfaces, bone-white text, no accent colour (white is the
+accent, used sparingly), no gradients or shadows. New screens follow it. The design is
+**open to revisiting** for the ADHD/student audience, but only as an explicit proposal
+approved by the owner. Never redesign a component as a side effect of other work.
+`verso-task-manager.html` is the original mockup: reference only, do not edit or delete.
 
 ## Working agreement
 
-- **Plan before editing.** For anything beyond a one-file change, propose the
-  approach and wait for approval.
-- **One feature per session.** Do not opportunistically refactor unrelated code.
-- **Small commits**, present tense, describing the change: `Add task editing`.
-- Never edit `package-lock.json` by hand.
-- Never commit `.env` files or keys.
-- If you are unsure what the owner wants, ask. A question costs less than a
-  wrong implementation.
+- One feature per session; no opportunistic refactors of unrelated code.
+- Before every commit: `npm run build`, `npm run lint`, `npm run format:check`,
+  `npm test` (root, all workspaces) must pass.
+- Small commits, present tense, describing the change (`Add task editing`).
