@@ -143,7 +143,9 @@ The choices that aren't obvious:
 - **`dueAt` and `scheduledAt` are separate.** When something is due and when
   you'll work on it are different facts, and the gap between them is what
   planning is. The AI daily plan (Step 4) is essentially choosing `scheduledAt`
-  values given `dueAt` values.
+  values given `dueAt` values. The UI calls them **Deadline** and **Do on**:
+  "Do on" is phrased as an action on purpose, so the field reads as a
+  commitment rather than an intention that's easy to let slide.
 - **`completedAt`, not `done`.** Same information plus _when_, which can't be
   recovered later and which the daily plan needs. The client sends
   `{ completed: true }` and the **server** stamps the time with its own clock,

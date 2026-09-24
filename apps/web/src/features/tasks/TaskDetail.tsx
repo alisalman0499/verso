@@ -116,13 +116,13 @@ export default function TaskDetail({
 
         <dl className="mt-6 border-t border-hairline">
           <div className="flex justify-between gap-4 border-b border-hairline py-3">
-            <dt className="font-mono text-[10px] tracking-[0.14em] text-mute-2 uppercase">
-              Due
+            <dt className="font-mono text-[10px] tracking-[0.14em] whitespace-nowrap text-mute-2 uppercase">
+              Deadline
             </dt>
             <dd className="flex items-center justify-end gap-2 text-right text-sm text-bone">
               <input
                 type="datetime-local"
-                aria-label="Due"
+                aria-label="Deadline"
                 value={
                   selected.dueAt !== null
                     ? toDatetimeLocalValue(selected.dueAt)
@@ -148,12 +148,13 @@ export default function TaskDetail({
             </dd>
           </div>
           <div className="flex justify-between gap-4 border-b border-hairline py-3">
-            <dt className="font-mono text-[10px] tracking-[0.14em] text-mute-2 uppercase">
-              When
+            <dt className="font-mono text-[10px] tracking-[0.14em] whitespace-nowrap text-mute-2 uppercase">
+              Do on
             </dt>
             <dd className="flex items-center justify-end gap-2 text-right text-sm text-bone">
               <input
                 type="datetime-local"
+                aria-label="Do on"
                 value={
                   selected.scheduledAt !== null
                     ? toDatetimeLocalValue(selected.scheduledAt)

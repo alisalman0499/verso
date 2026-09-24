@@ -19,8 +19,8 @@ roadmap.
 
 - **Accounts** — sign-up with email verification, sign-in, sign-out, password
   reset.
-- **Tasks** — create, edit, complete, delete; a deadline (**due**) separate from
-  when you plan to work on it (**when**), an estimate, notes. Past-deadline
+- **Tasks** — create, edit, complete, delete; a **Deadline** separate from
+  when you'll work on it (**Do on**), an estimate, notes. Past-deadline
   tasks read "overdue".
 - **Projects** — create, file tasks under them, filter by them.
 - **Four lists** — Today, Upcoming, Completed, All tasks — and a **day rail**
